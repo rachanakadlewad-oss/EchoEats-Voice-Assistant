@@ -1,0 +1,344 @@
+.orders-container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+    font-family: 'Inter', sans-serif;
+}
+
+.orders-container h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.orders-container h1::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    background-color: #a75e3d;
+    border-radius: 2px;
+}
+
+.orders-loading {
+    text-align: center;
+    padding: 60px;
+    color: #666;
+    font-size: 18px;
+}
+
+.no-orders {
+    text-align: center;
+    padding: 80px 20px;
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.no-orders h2 {
+    font-size: 28px;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+}
+
+.no-orders p {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 30px;
+}
+
+.no-orders button {
+    padding: 12px 30px;
+    background: linear-gradient(135deg, #a75e3d, #c47a5a);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.no-orders button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(167, 94, 61, 0.3);
+}
+
+.orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.order-card {
+    background: white;
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f0f0f0;
+    transition: all 0.3s ease;
+}
+
+.order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(167, 94, 61, 0.1);
+    border-color: #a75e3d20;
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 15px;
+}
+
+.order-id {
+    font-size: 18px;
+    font-weight: 700;
+    color: #a75e3d;
+}
+
+.order-date {
+    font-size: 14px;
+    color: #666;
+}
+
+.order-items {
+    margin-bottom: 15px;
+}
+
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px dashed #f0f0f0;
+}
+
+.order-item:last-child {
+    border-bottom: none;
+}
+
+.item-name {
+    flex: 2;
+    font-weight: 500;
+    color: #1a1a1a;
+}
+
+.item-quantity {
+    flex: 0.5;
+    text-align: center;
+    color: #666;
+}
+
+.item-price {
+    flex: 0.5;
+    text-align: right;
+    font-weight: 600;
+    color: #a75e3d;
+}
+
+.order-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 15px;
+    border-top: 2px solid #f0f0f0;
+}
+
+.order-total {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.order-total span {
+    color: #a75e3d;
+    font-size: 18px;
+    margin-left: 5px;
+}
+
+.order-payment {
+    font-size: 14px;
+    color: #666;
+    background: #f5f5f5;
+    padding: 5px 10px;
+    border-radius: 20px;
+}
+
+.order-status {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.status-placed {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-confirmed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-preparing {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.status-out-for-delivery {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-delivered {
+    background: #d4edda;
+    color: #155724;
+}
+
+.order-review {
+    margin-top: 15px;
+    text-align: right;
+}
+
+.review-btn {
+    padding: 8px 20px;
+    background: transparent;
+    border: 2px solid #a75e3d;
+    color: #a75e3d;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.review-btn:hover {
+    background: #a75e3d;
+    color: white;
+}
+
+/* Payment Modal */
+.payment-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.payment-modal-content {
+    background: white;
+    padding: 40px;
+    border-radius: 24px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+}
+
+.payment-modal-content h3 {
+    font-size: 24px;
+    color: #1a1a1a;
+    margin-bottom: 30px;
+}
+
+.payment-option {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: none;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.payment-option.cod {
+    background: #4CAF50;
+    color: white;
+}
+
+.payment-option.upi {
+    background: #a75e3d;
+    color: white;
+}
+
+.payment-option.cancel {
+    background: #f5f5f5;
+    color: #666;
+}
+
+.payment-option:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.payment-option:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Order Popup */
+.order-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px 40px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    z-index: 1001;
+    animation: slideIn 0.3s ease;
+    border-left: 5px solid #4CAF50;
+}
+
+.order-popup p {
+    font-size: 18px;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+@media (max-width: 768px) {
+    .order-footer {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .order-status {
+        align-self: flex-start;
+    }
+    
+    .payment-modal-content {
+        padding: 30px 20px;
+    }
+}
