@@ -47,9 +47,9 @@ const VoiceAssistant = () => {
 
     if (!hasGreeted && !Togg) {
       setTimeout(() => {
-        const greeting = "Hello! I am your voice assistant. How can I help you today?";
-        setAssistantResponse(greeting);
-        speakResponse(greeting);
+        // const greeting = "Hello! I am your voice assistant. How can I help you today?";
+        // setAssistantResponse(greeting);
+        // speakResponse(greeting);
         setHasGreeted(true);
       }, 1000);
     }
