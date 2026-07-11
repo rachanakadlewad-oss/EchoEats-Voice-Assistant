@@ -215,37 +215,80 @@ const VoiceAssistant = () => {
     }
   }, [navigate, foodData, updateQuantity, logout]);
 
+  // const processVoiceCommand = useCallback(async (command) => {
+  //   setIsProcessing(true);
+  //   try {
+  //     const res = await fetch(`${API_URL}/voice/`, {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ transcript: command }),
+  //     });
+  //     const data = await res.json();
+
+  //     if (data.aiResponse) {
+  //       setAssistantResponse(data.aiResponse.response);
+  //       speakResponse(data.aiResponse.response);
+
+  //       if (data.aiResponse.command === 'NAVIGATE' && data.aiResponse.page === 'login') {
+  //         setLoginStep('awaiting_email');
+  //         speakResponse('Please say your email');
+  //       } else {
+  //         await handleCommand(data.aiResponse);
+  //       }
+  //     } else {
+  //       setAssistantResponse('Sorry, I encountered an error.');
+  //       speakResponse('Sorry, I encountered an error.');
+  //     }
+  //   } catch {
+  //     setAssistantResponse('Sorry, I could not connect to the server.');
+  //     speakResponse('Sorry, I could not connect to the server.');
+  //   } finally {
+  //     setIsProcessing(false);
+  //   }
+  // }, [speakResponse, handleCommand]);
+
   const processVoiceCommand = useCallback(async (command) => {
-    setIsProcessing(true);
-    try {
-      const res = await fetch(`${API_URL}/voice/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript: command }),
-      });
-      const data = await res.json();
+  setIsProcessing(true);
 
-      if (data.aiResponse) {
-        setAssistantResponse(data.aiResponse.response);
-        speakResponse(data.aiResponse.response);
+  try {
+    console.log("Sending transcript:", command);
 
-        if (data.aiResponse.command === 'NAVIGATE' && data.aiResponse.page === 'login') {
-          setLoginStep('awaiting_email');
-          speakResponse('Please say your email');
-        } else {
-          await handleCommand(data.aiResponse);
-        }
-      } else {
-        setAssistantResponse('Sorry, I encountered an error.');
-        speakResponse('Sorry, I encountered an error.');
-      }
-    } catch {
-      setAssistantResponse('Sorry, I could not connect to the server.');
-      speakResponse('Sorry, I could not connect to the server.');
-    } finally {
-      setIsProcessing(false);
+    const res = await fetch(`${API_URL}/voice/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transcript: command }),
+    });
+
+    console.log("Status:", res.status);
+
+    const data = await res.json();
+
+    console.log("VOICE RESPONSE:");
+    console.log(data);
+
+    if (data.aiResponse) {
+      console.log("Command:", data.aiResponse.command);
+
+      setAssistantResponse(data.aiResponse.response);
+      speakResponse(data.aiResponse.response);
+
+      console.log("Calling handleCommand...");
+      await handleCommand(data.aiResponse);
+
+      console.log("handleCommand finished");
+    } else {
+      console.log("No aiResponse returned");
+      setAssistantResponse("Sorry, I encountered an error.");
+      speakResponse("Sorry, I encountered an error.");
     }
-  }, [speakResponse, handleCommand]);
+  } catch (err) {
+    console.error("VOICE ERROR:", err);
+    setAssistantResponse("Sorry, I could not connect to the server.");
+    speakResponse("Sorry, I could not connect to the server.");
+  } finally {
+    setIsProcessing(false);
+  }
+}, [speakResponse, handleCommand]);
 
   const processTranscript = useCallback(async (text) => {
     if (!text || processedCommands.includes(text)) return;
