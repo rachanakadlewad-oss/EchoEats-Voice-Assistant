@@ -4,17 +4,17 @@ import { GlobalStateContext } from '../context/GlobalStateContext';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import './CSS/Voice.css';
 
-const playAudioFromText = async (text) => {
-  const encodedText = encodeURIComponent(text);
-  const googleTTSUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=${encodedText}&tl=en/`;
-  const audio = new Audio(googleTTSUrl);
-  audio.crossOrigin = 'anonymous';
-  return new Promise((resolve, reject) => {
-    audio.onended = resolve;
-    audio.onerror = reject;
-    audio.play().catch(reject);
-  });
-};
+// const playAudioFromText = async (text) => {
+//   const encodedText = encodeURIComponent(text);
+//   const googleTTSUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=${encodedText}&tl=en/`;
+//   const audio = new Audio(googleTTSUrl);
+//   audio.crossOrigin = 'anonymous';
+//   return new Promise((resolve, reject) => {
+//     audio.onended = resolve;
+//     audio.onerror = reject;
+//     audio.play().catch(reject);
+//   });
+// };
 
 const VoiceAssistant = () => {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ const VoiceAssistant = () => {
   const [assistantResponse, setAssistantResponse] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [speechMethod, setSpeechMethod] = useState('native');
+  // const [speechMethod, setSpeechMethod] = useState('native');
   const [hasGreeted, setHasGreeted] = useState(false);
   const [loginStep, setLoginStep] = useState(null);
   const [loginEmail, setLoginEmail] = useState('');
@@ -38,12 +38,12 @@ const VoiceAssistant = () => {
 
   console.log("Speech supported:", browserSupportsSpeechRecognition);
   useEffect(() => {
-    if ('speechSynthesis' in window) {
-      const voices = speechSynthesis.getVoices();
-      setSpeechMethod(voices.length > 0 ? 'native' : 'google');
-    } else {
-      setSpeechMethod('google');
-    }
+    // if ('speechSynthesis' in window) {
+    //   const voices = speechSynthesis.getVoices();
+    //   setSpeechMethod(voices.length > 0 ? 'native' : 'google');
+    // } else {
+    //   setSpeechMethod('google');
+    // }
 
     if (!hasGreeted && !Togg) {
       setTimeout(() => {
@@ -56,32 +56,44 @@ const VoiceAssistant = () => {
   }, []); 
 
   // ── TTS ────────────────────────────────────────────────────────────────────
-  const speakResponse = useCallback(async (text) => {
-    setIsSpeaking(true);
-    try {
-      if (speechMethod === 'native') {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.9;
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
-        utterance.lang = 'en-IN';
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => {
-          setIsSpeaking(false);
-          setSpeechMethod('google');
-          speakResponse(text);
-        };
-        window.speechSynthesis.speak(utterance);
-      } else {
-        await playAudioFromText(text).catch(console.error);
-        setIsSpeaking(false);
-      }
-    } catch {
-      setIsSpeaking(false);
-    }
-  }, [speechMethod]);
+  // const speakResponse = useCallback(async (text) => {
+  //   setIsSpeaking(true);
+  //   try {
+  //     if (speechMethod === 'native') {
+  //       window.speechSynthesis.cancel();
+  //       const utterance = new SpeechSynthesisUtterance(text);
+  //       utterance.rate = 0.9;
+  //       utterance.pitch = 1.0;
+  //       utterance.volume = 1.0;
+  //       utterance.lang = 'en-IN';
+  //       utterance.onend = () => setIsSpeaking(false);
+  //       utterance.onerror = () => {
+  //         setIsSpeaking(false);
+  //         setSpeechMethod('google');
+  //         speakResponse(text);
+  //       };
+  //       window.speechSynthesis.speak(utterance);
+  //     } else {
+  //       await playAudioFromText(text).catch(console.error);
+  //       setIsSpeaking(false);
+  //     }
+  //   } catch {
+  //     setIsSpeaking(false);
+  //   }
+  // }, [speechMethod]);
 
+  const speakResponse = (text) => {
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+
+  utterance.lang = "en-US";
+  utterance.rate = 0.95;
+  utterance.pitch = 1;
+  utterance.volume = 1;
+
+  window.speechSynthesis.speak(utterance);
+};
   const handleLogin = async (email, password) => {
     try {
       const res = await fetch(`${API_URL}/login/`, {
@@ -336,9 +348,9 @@ const VoiceAssistant = () => {
     <div className="voice-assistant-panel">
       <div className="voice-header">
         <h3>🎤 Voice Assistant</h3>
-        {speechMethod === 'google' && (
+        {/* {speechMethod === 'google' && (
           <p className="voice-subtitle">(Using Google TTS)</p>
-        )}
+        )} */}
       </div>
 
       <div className="voice-controls">
@@ -385,7 +397,8 @@ const VoiceAssistant = () => {
           {isSpeaking && (
             <div className="speaking-indicator">
               <span className="sound-icon">🔊</span>
-              {speechMethod === 'google' ? 'Playing...' : 'Speaking...'}
+              {/* {speechMethod === 'google' ? 'Playing...' : 'Speaking...'} */}
+              Speaking...
             </div>
           )}
         </div>
