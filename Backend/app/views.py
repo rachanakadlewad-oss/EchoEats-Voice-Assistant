@@ -19,18 +19,54 @@ RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
 
 razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
+# @csrf_exempt
+# def get_food_items(request):
+#     if request.method == "GET":
+#         try:
+#             with connection.cursor() as cursor:
+#                 cursor.execute("SELECT * FROM FoodItems")
+#                 rows = cursor.fetchall()
+#                 columns = [col[0] for col in cursor.description]
+#                 food_items = []
+#                 for row in rows:
+#                     food_items.append(dict(zip(columns, row)))
+#             return JsonResponse(food_items, safe=False)
+#         except Exception as e:
+#             return JsonResponse({"error": str(e)}, status=500)
+
 @csrf_exempt
 def get_food_items(request):
     if request.method == "GET":
         try:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT * FROM FoodItems")
+                cursor.execute("""
+                    SELECT FoodID, FoodName, Description, Price, Category,
+                           ImageName, IsAvailable, Rating,
+                           DateAdded, Quantity, Stock
+                    FROM FoodItems
+                """)
+
                 rows = cursor.fetchall()
-                columns = [col[0] for col in cursor.description]
+
                 food_items = []
+
                 for row in rows:
-                    food_items.append(dict(zip(columns, row)))
+                    food_items.append({
+                        "FoodID": row[0],
+                        "FoodName": row[1],
+                        "Description": row[2],
+                        "Price": float(row[3]),
+                        "Category": row[4],
+                        "ImageName": row[5],
+                        "IsAvailable": row[6],
+                        "Rating": float(row[7]) if row[7] is not None else None,
+                        "DateAdded": row[8],
+                        "Quantity": row[9],
+                        "Stock": row[10]
+                    })
+
             return JsonResponse(food_items, safe=False)
+
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
