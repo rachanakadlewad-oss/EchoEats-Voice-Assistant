@@ -8,7 +8,7 @@ const ProfilePage = () => {
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('profile')
     const navigate = useNavigate()
-
+    const API_URL = import.meta.env.VITE_API_URL;
     useEffect(() => {
         if (!isLoggedIn) {
             navigate('/login', { state: { from: { pathname: '/profile' } } })
@@ -20,7 +20,7 @@ const ProfilePage = () => {
 
     const fetchUserOrders = async () => {
         try {
-            const response = await fetch(`http://localhost:3000/orders/${user.user_id}/`)
+            const response = await fetch(`${API_URL}/orders/${user.user_id}/`)
             const data = await response.json()
             setOrders(data)
             setLoading(false)

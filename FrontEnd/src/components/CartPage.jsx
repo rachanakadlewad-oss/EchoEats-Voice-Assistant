@@ -13,6 +13,8 @@ const CartPage = () => {
     const [orderMessage, setOrderMessage] = useState('')
     const navigate = useNavigate()
 
+    const API_URL = import.meta.env.VITE_API_URL;
+
     useEffect(() => {
         const itemsInCart = foodData.filter(item => item.Quantity > 0)
         setCartItems(itemsInCart)
@@ -61,7 +63,7 @@ const CartPage = () => {
         setLoading(true)
 
         try {
-            const orderResponse = await fetch("http://localhost:3000/create-order/", {
+            const orderResponse = awaitfetch(`${API_URL}/create-order/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -113,7 +115,7 @@ const CartPage = () => {
     setLoading(true)
 
     try {
-        const orderResponse = await fetch("http://localhost:3000/create-order/", {
+        const orderResponse = await fetch(`${API_URL}/create-order/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -151,7 +153,7 @@ const CartPage = () => {
             order_id: orderData.razorpayOrderId,
             handler: async (response) => {
                 try {
-                    const verifyResponse = await fetch("http://localhost:3000/verify-payment/", {
+                    const verifyResponse = await fetch(`${API_URL}/verify-payment/`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

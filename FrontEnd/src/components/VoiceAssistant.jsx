@@ -31,6 +31,8 @@ const VoiceAssistant = () => {
   const [transcriptTimeout, setTranscriptTimeout] = useState(null);
   const [processedCommands, setProcessedCommands] = useState([]);
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } =
     useSpeechRecognition();
 
@@ -81,7 +83,7 @@ const VoiceAssistant = () => {
 
   const handleLogin = async (email, password) => {
     try {
-      const res = await fetch('http://localhost:3000/login/', {
+      const res = await fetch(`${API_URL}/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -171,7 +173,7 @@ const VoiceAssistant = () => {
   const processVoiceCommand = useCallback(async (command) => {
     setIsProcessing(true);
     try {
-      const res = await fetch('http://localhost:3000/voice/', {
+      const res = await fetch(`${API_URL}/voice/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transcript: command }),

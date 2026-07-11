@@ -7,6 +7,7 @@ const OrdersPage = () => {
     const [orders, setOrders] = useState([])
     const [loading, setLoading] = useState(true)
     const navigate = useNavigate()
+    const API_URL = import.meta.env.VITE_API_URL;
 
     useEffect(() => {
         if (!isLoggedIn) {
@@ -21,7 +22,7 @@ const OrdersPage = () => {
 
     const fetchOrders = async () => {
         try {
-            const response = await fetch(`http://localhost:3000/orders/${user.user_id}/`)
+            const response = await fetch(`${API_URL}/orders/${user.user_id}/`)
             const data = await response.json()
             
             // Ensure data is an array

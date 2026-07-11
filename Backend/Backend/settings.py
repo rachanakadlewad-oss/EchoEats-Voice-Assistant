@@ -44,6 +44,7 @@ ROOT_URLCONF = 'Backend.urls'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "https://echoeats-voice-assistant-1.onrender.com"
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
