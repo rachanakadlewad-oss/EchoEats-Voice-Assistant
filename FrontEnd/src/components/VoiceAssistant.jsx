@@ -395,10 +395,10 @@ const VoiceAssistant = () => {
   //     processTranscript(transcript);
   //   }
   // };
+  // };
 
 const stopListening = async () => {
   await SpeechRecognition.stopListening();
-};
 };
 
   const openAssistant = () => setTogg(true);
