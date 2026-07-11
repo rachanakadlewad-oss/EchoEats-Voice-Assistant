@@ -73,6 +73,7 @@ def get_food_items(request):
 @csrf_exempt
 def process_voice(request):
     if request.method == "POST":
+        print("VOICE ENDPOINT HIT")
         try:
             data = json.loads(request.body)
             transcript = data.get('transcript', '')
