@@ -36,6 +36,7 @@ const VoiceAssistant = () => {
   const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } =
     useSpeechRecognition();
 
+  console.log("Speech supported:", browserSupportsSpeechRecognition);
   useEffect(() => {
     if ('speechSynthesis' in window) {
       const voices = speechSynthesis.getVoices();
@@ -238,6 +239,8 @@ const VoiceAssistant = () => {
   }, [listening, transcript, isListening]); 
 
   const startListening = () => {
+     console.log("Mic clicked");
+
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
     setIsListening(true);
