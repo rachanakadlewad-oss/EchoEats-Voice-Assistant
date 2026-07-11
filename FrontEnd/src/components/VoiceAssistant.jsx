@@ -342,12 +342,22 @@ const VoiceAssistant = () => {
 
 }, [transcript, listening]);
 
+  // useEffect(() => {
+  //   if (!listening && transcript) {
+  //     const timer = setTimeout(stopListening, 1000);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [listening, transcript, isListening]); 
+
   useEffect(() => {
-    if (!listening && transcript && isListening) {
-      const timer = setTimeout(stopListening, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [listening, transcript, isListening]); 
+  if (!listening && transcript.trim()) {
+    console.log("Sending transcript:", transcript);
+
+    processVoiceCommand(transcript);
+
+    resetTranscript();
+  }
+}, [listening, transcript, processVoiceCommand, resetTranscript]);
 
   // const startListening = () => {
   //    console.log("Mic clicked");
@@ -386,12 +396,9 @@ const VoiceAssistant = () => {
   //   }
   // };
 
-  const stopListening = async () => {
+const stopListening = async () => {
   await SpeechRecognition.stopListening();
-
-  if (transcript.trim()) {
-    processTranscript(transcript);
-  }
+};
 };
 
   const openAssistant = () => setTogg(true);
