@@ -221,20 +221,39 @@ const VoiceAssistant = () => {
     await processVoiceCommand(text);
   }, [processedCommands, loginStep, loginEmail, speakResponse, processVoiceCommand]);
 
-  useEffect(() => {
-    console.log("Effect fired", {
-    transcript,
-    isListening,
-    listening,
-});
-    if (!transcript || !isListening) return;
-    if (transcriptTimeout) clearTimeout(transcriptTimeout);
+  // useEffect(() => {
+  //   console.log("Effect fired", {
+  //       transcript,
+  //       isListening,
+  //       listening,
+  //   });
+  //   if (!transcript || !isListening) return;
+  //   if (transcriptTimeout) clearTimeout(transcriptTimeout);
 
-    const timeout = setTimeout(() => processTranscript(transcript), 2000);
+  //   const timeout = setTimeout(() => processTranscript(transcript), 2000);
+  //   setTranscriptTimeout(timeout);
+
+  //   return () => clearTimeout(timeout);
+  // }, [transcript, isListening]); 
+
+  useEffect(() => {
+    if (!transcript || !listening) return;
+
+    console.log("Transcript:", transcript);
+
+    if (transcriptTimeout) {
+        clearTimeout(transcriptTimeout);
+    }
+
+    const timeout = setTimeout(() => {
+        processTranscript(transcript);
+    }, 1000);
+
     setTranscriptTimeout(timeout);
 
     return () => clearTimeout(timeout);
-  }, [transcript, isListening]); 
+
+}, [transcript, listening]);
 
   useEffect(() => {
     if (!listening && transcript && isListening) {
@@ -243,23 +262,50 @@ const VoiceAssistant = () => {
     }
   }, [listening, transcript, isListening]); 
 
-  const startListening = () => {
-     console.log("Mic clicked");
+  // const startListening = () => {
+  //    console.log("Mic clicked");
 
-    window.speechSynthesis?.cancel();
-    setIsSpeaking(false);
-    setIsListening(true);
-    resetTranscript();
-    SpeechRecognition.startListening({ continuous: true, language: 'en-IN' });
-  };
+  //   window.speechSynthesis?.cancel();
+  //   setIsSpeaking(false);
+  //   setIsListening(true);
+  //   resetTranscript();
+  //   SpeechRecognition.startListening({ continuous: true, language: 'en-IN' });
+  // };
 
-  const stopListening = () => {
-    setIsListening(false);
-    SpeechRecognition.stopListening();
-    if (transcript && !processedCommands.includes(transcript)) {
-      processTranscript(transcript);
-    }
-  };
+  const startListening = async () => {
+  console.log("Mic clicked");
+
+  window.speechSynthesis.cancel();
+  resetTranscript();
+
+  try {
+    await SpeechRecognition.startListening({
+      continuous: false,
+      interimResults: false,
+      language: "en-US",
+    });
+
+    console.log("SpeechRecognition started");
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+  // const stopListening = () => {
+  //   setIsListening(false);
+  //   SpeechRecognition.stopListening();
+  //   if (transcript && !processedCommands.includes(transcript)) {
+  //     processTranscript(transcript);
+  //   }
+  // };
+
+  const stopListening = async () => {
+  await SpeechRecognition.stopListening();
+
+  if (transcript.trim()) {
+    processTranscript(transcript);
+  }
+};
 
   const openAssistant = () => setTogg(true);
 
@@ -297,16 +343,18 @@ const VoiceAssistant = () => {
 
       <div className="voice-controls">
         <button
-          className={`listen-button ${isListening ? 'listening' : ''}`}
-          onClick={isListening ? stopListening : startListening}
+          // className={`listen-button ${isListening ? 'listening' : ''}`}
+          className={`listen-button ${listening ? 'listening' : ''}`}
+          // onClick={isListening ? stopListening : startListening}
+          onClick={listening ? stopListening : startListening}
           disabled={isProcessing}
         >
-          {isListening ? (
+          {listening ? (
             <><span className="pulse-icon"></span>Listening... Click to Stop</>
           ) : isProcessing ? 'Processing...' : '🎤 Start Voice Command'}
         </button>
 
-        {isListening && (
+        {listening && (
           <div className="listening-indicator">
             <div className="sound-wave">
               {[...Array(5)].map((_, i) => <div key={i} className="bar"></div>)}
