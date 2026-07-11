@@ -143,20 +143,52 @@ const VoiceAssistant = () => {
         }
         break;
 
+      // case 'ORDER':
+      //   if (commandData.items?.length) {
+      //     for (const item of commandData.items) {
+
+      //       console.log("foodData:", foodData);
+      //       console.log("AI item:", item);
+      //       const foodItem = foodData.find(f =>
+      //         f.FoodName.toLowerCase().includes(item.name.toLowerCase())
+      //       );
+      //       if (foodItem) {
+      //         for (let i = 0; i < item.quantity; i++) {
+      //           await updateQuantity(foodItem.FoodID, 1);
+      //         }
+      //       }
+      //     }
+      //   }
+      //   break;
+
       case 'ORDER':
-        if (commandData.items?.length) {
-          for (const item of commandData.items) {
-            const foodItem = foodData.find(f =>
-              f.FoodName.toLowerCase().includes(item.name.toLowerCase())
-            );
-            if (foodItem) {
-              for (let i = 0; i < item.quantity; i++) {
-                await updateQuantity(foodItem.FoodID, 1);
-              }
-            }
-          }
+  if (commandData.items?.length) {
+    for (const item of commandData.items) {
+
+      console.log("========== FOOD DATA ==========");
+      console.log(foodData);
+
+      console.log("========== AI ITEM ==========");
+      console.log(item);
+
+      const foodItem = foodData.find(f => {
+        console.log("Checking:", f);
+        return (f.FoodName || f.foodname)
+          .toLowerCase()
+          .includes(item.name.toLowerCase());
+      });
+
+      console.log("========== MATCHED ==========");
+      console.log(foodItem);
+
+      if (foodItem) {
+        for (let i = 0; i < item.quantity; i++) {
+          await updateQuantity(foodItem.FoodID || foodItem.foodid, 1);
         }
-        break;
+      }
+    }
+  }
+  break;
 
       case 'REMOVE':
         if (commandData.items?.length) {
