@@ -57,28 +57,6 @@ const OrdersPage = () => {
         }
     }
 
-    const updateOrderStatus = async (orderId, newStatus) => {
-        try {
-            await fetch(`${API_URL}/update-order-status/${orderId}/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus })
-            })
-            // Update locally for instant responsiveness
-            setOrders(prev => prev.map(o => o.order_id === orderId ? { ...o, order_status: newStatus } : o))
-        } catch (e) {
-            console.error("Error updating status:", e)
-        }
-    }
-
-    const advanceStatus = (order) => {
-        const flow = ['placed', 'confirmed', 'preparing', 'out-for-delivery', 'delivered']
-        const currIdx = flow.indexOf(order.order_status)
-        if (currIdx !== -1 && currIdx < flow.length - 1) {
-            const nextStatus = flow[currIdx + 1]
-            updateOrderStatus(order.order_id, nextStatus)
-        }
-    }
 
     const handleReorder = async (order) => {
         if (!order.items || !order.items.length) return
@@ -291,15 +269,6 @@ const OrdersPage = () => {
                                         >
                                             📄 Download Invoice
                                         </button>
-                                        {order.order_status !== 'delivered' && (
-                                            <button 
-                                                className="status-simulate-btn"
-                                                onClick={() => advanceStatus(order)}
-                                                title="Advance status for testing"
-                                            >
-                                                ⏩ Advance Status
-                                            </button>
-                                        )}
                                     </div>
                                 </div>
 

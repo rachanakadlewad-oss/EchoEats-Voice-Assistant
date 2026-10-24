@@ -17,16 +17,35 @@ const ProfilePage = () => {
         }
 
         fetchUserOrders()
-    }, [isLoggedIn])
+    }, [isLoggedIn, user])
 
     const fetchUserOrders = async () => {
+        const targetUserId = user?.user_id || user?.id || user?.userId || (() => {
+            try {
+                return JSON.parse(localStorage.getItem('user') || '{}')?.user_id
+            } catch (e) {
+                return null
+            }
+        })()
+
+        if (!targetUserId) {
+            setOrders([])
+            setLoading(false)
+            return
+        }
+
         try {
-            const response = await fetch(`${API_URL}/orders/${user.user_id}/`)
+            const response = await fetch(`${API_URL}/orders/${targetUserId}/`)
             const data = await response.json()
-            setOrders(data)
+            if (Array.isArray(data)) {
+                setOrders(data)
+            } else {
+                setOrders([])
+            }
             setLoading(false)
         } catch (error) {
             console.error("Error fetching orders:", error)
+            setOrders([])
             setLoading(false)
         }
     }

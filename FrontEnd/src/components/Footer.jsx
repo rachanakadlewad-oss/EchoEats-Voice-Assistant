@@ -1,29 +1,36 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import { Link } from 'react-router-dom'
 import './CSS/Footer.css'
+import { GlobalStateContext } from '../context/GlobalStateContext'
 
 const Footer = () => {
+  const { isLoggedIn } = useContext(GlobalStateContext)
+
   return (
     <div className='outerFooter'>
         <div className='Footer'>
             <div className='FooterContent'>
                 <div className='FooterSection'>
-                    <h3>About EchoEats</h3>
+                    <h3>EchoEats Dining</h3>
                     <ul>
-                        <li><Link to="/about">Our Story</Link></li>
-                        <li><Link to="/careers">Careers</Link></li>
-                        <li><Link to="/press">Press</Link></li>
-                        <li><Link to="/blog">Blog</Link></li>
+                        {!isLoggedIn && <li><Link to="/about">Our Story</Link></li>}
+                        <li><Link to="/#items">Featured Delights</Link></li>
+                        <li><Link to="/cart">Shopping Basket</Link></li>
+                        {isLoggedIn && <li><Link to="/orders">Order History</Link></li>}
                     </ul>
                 </div>
                 
                 <div className='FooterSection'>
                     <h3>Quick Links</h3>
                     <ul>
-                        <li><Link to="/home">Home</Link></li>
-                        <li><Link to="/menu">Menu</Link></li>
-                        <li><Link to="/offers">Login/SignUp</Link></li>
-                        <li><Link to="/contact">Contact Us</Link></li>
+                        <li><Link to="/">Home</Link></li>
+                        <li><Link to="/#items">Explore Menu</Link></li>
+                        {!isLoggedIn ? (
+                          <li><Link to="/login">Login / Sign Up</Link></li>
+                        ) : (
+                          <li><Link to="/profile">My Profile</Link></li>
+                        )}
+                        <li><Link to="/cart">Cart</Link></li>
                     </ul>
                 </div>
                 

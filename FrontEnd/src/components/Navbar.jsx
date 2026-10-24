@@ -79,9 +79,11 @@ const Navbar = () => {
             Menu
           </button>
 
-          <Link to="/about" className={`nav-link ${location.pathname === '/about' ? 'active' : ''}`}>
-            About
-          </Link>
+          {!isLoggedIn && (
+            <Link to="/about" className={`nav-link ${location.pathname === '/about' ? 'active' : ''}`}>
+              About
+            </Link>
+          )}
 
           {isLoggedIn && (
             <Link to="/orders" className={`nav-link ${location.pathname === '/orders' ? 'active' : ''}`}>
@@ -182,9 +184,11 @@ const Navbar = () => {
           <button onClick={scrollToMenu} className="mobile-nav-link text-left">
             🍕 Explore Menu
           </button>
-          <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-link">
-            ℹ️ About Us
-          </Link>
+          {!isLoggedIn && (
+            <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-link">
+              ℹ️ About Us
+            </Link>
+          )}
           {isLoggedIn && (
             <Link to="/orders" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-link">
               📦 My Orders

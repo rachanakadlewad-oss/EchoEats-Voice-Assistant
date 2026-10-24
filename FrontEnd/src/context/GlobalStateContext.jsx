@@ -169,10 +169,13 @@ export const GlobalStateProvider = ({ children }) => {
 
     await clearCart()
 
-    try {
-      await fetch(`${API_URL}/logout/${user.user_id}/`, { method: 'POST' })
-    } catch (error) {
-      console.error('Logout error:', error)
+    const uid = user.user_id || user.id || user.userId
+    if (uid) {
+      try {
+        await fetch(`${API_URL}/logout/${uid}/`, { method: 'POST' })
+      } catch (error) {
+        console.error('Logout error:', error)
+      }
     }
 
     localStorage.removeItem('user')

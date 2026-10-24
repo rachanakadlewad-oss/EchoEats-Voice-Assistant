@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react"
+import React, { useState, useContext, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import "./CSS/Login.css"
 import { GlobalStateContext } from '../context/GlobalStateContext'
@@ -9,10 +9,16 @@ const LoginPage = () => {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   
-  const { login } = useContext(GlobalStateContext)
+  const { login, isLoggedIn } = useContext(GlobalStateContext)
   const navigate = useNavigate()
   const location = useLocation()
   const from = location.state?.from?.pathname || '/'
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate(from, { replace: true })
+    }
+  }, [isLoggedIn, navigate, from])
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 

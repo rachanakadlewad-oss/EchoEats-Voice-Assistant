@@ -1,7 +1,18 @@
-import React from "react";
+import React, { useContext, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./CSS/About.css";
+import { GlobalStateContext } from "../context/GlobalStateContext";
 
 const AboutPage = () => {
+  const { isLoggedIn } = useContext(GlobalStateContext);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate("/", { replace: true });
+    }
+  }, [isLoggedIn, navigate]);
+
   const teamMembers = [
     {
       name: "Rachana Kadlewad",

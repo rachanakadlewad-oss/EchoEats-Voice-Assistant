@@ -60,6 +60,7 @@ def initialize_database():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS orders (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id VARCHAR(100),
                 order_id VARCHAR(100) UNIQUE NOT NULL,
                 razorpay_order_id VARCHAR(100),
                 payment_id VARCHAR(100),

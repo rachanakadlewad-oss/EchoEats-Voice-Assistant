@@ -28,10 +28,10 @@ urlpatterns = [
     path('update-quantity/<int:id>/', views.update_quantity),  # Make sure this has trailing slash
     path('login/', views.login_user),
     path('signup/', views.signup_user),
-    path('logout/<int:user_id>/', views.logout_user),
+    path('logout/<str:user_id>/', views.logout_user),
     path('create-order/', views.create_order),
     path('verify-payment/', views.verify_payment),
-    path('orders/<int:user_id>/', views.get_user_orders),
+    path('orders/<str:user_id>/', views.get_user_orders),
     path('update-order-status/<str:order_id>/', views.update_order_status),
     path('session-cart/', views.session_cart_operations),
     path('session-cart/<str:session_id>/', views.get_session_cart),

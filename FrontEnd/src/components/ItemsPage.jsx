@@ -32,9 +32,10 @@ const ItemsPage = () => {
     // Filter items based on category and search query
     const filteredItems = foodData.filter(item => {
         const matchesCategory = selectedCategory === 'All' || item.Category === selectedCategory
-        const matchesSearch = !searchQuery || 
-            item.FoodName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (item.Description && item.Description.toLowerCase().includes(searchQuery.toLowerCase()))
+        const name = (item.FoodName || item.foodname || item.name || '').toLowerCase()
+        const desc = (item.Description || item.description || '').toLowerCase()
+        const q = searchQuery.toLowerCase()
+        const matchesSearch = !searchQuery || name.includes(q) || desc.includes(q)
         return matchesCategory && matchesSearch
     })
 

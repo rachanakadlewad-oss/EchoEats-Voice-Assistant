@@ -383,8 +383,8 @@ def logout_user(request, user_id):
         try:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "UPDATE users SET is_logged_in = FALSE WHERE user_id = %s",
-                    [user_id]
+                    "UPDATE users SET is_logged_in = FALSE WHERE user_id = %s OR email = %s",
+                    [user_id, str(user_id)]
                 )
             
             return JsonResponse({"success": True})
@@ -508,9 +508,9 @@ def create_order(request):
             with connection.cursor() as cursor:
                 cursor.execute(
                     """INSERT INTO orders 
-                       (order_id, amount, currency, payment_method, status, items, customer_details, razorpay_order_id) 
-                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
-                    [order_id, amount, 'INR', payment_method, 'placed', items_json, customer_details, razorpay_order_id]
+                       (user_id, order_id, amount, currency, payment_method, status, items, customer_details, razorpay_order_id) 
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    [str(user_id), order_id, amount, 'INR', payment_method, 'placed', items_json, customer_details, razorpay_order_id]
                 )
             
             response_data = {
@@ -578,31 +578,57 @@ def verify_payment(request):
 def get_user_orders(request, user_id):
     if request.method == "GET":
         try:
+            target_id_str = str(user_id).strip()
+            if not target_id_str or target_id_str.lower() in ['undefined', 'null']:
+                return JsonResponse([], safe=False)
+
+            user_identifiers = {target_id_str}
             with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT * FROM orders WHERE customer_details LIKE %s ORDER BY created_at DESC",
-                    [f'%{user_id}%']
-                )
+                try:
+                    if target_id_str.isdigit():
+                        cursor.execute("SELECT user_id, email FROM users WHERE user_id = %s", [int(target_id_str)])
+                    else:
+                        cursor.execute("SELECT user_id, email FROM users WHERE email = %s", [target_id_str])
+                    for u_row in cursor.fetchall():
+                        if u_row[0] is not None:
+                            user_identifiers.add(str(u_row[0]))
+                        if u_row[1]:
+                            user_identifiers.add(str(u_row[1]).lower())
+                except Exception as u_err:
+                    print("User identifier lookup note:", u_err)
+
+                cursor.execute("SELECT * FROM orders ORDER BY created_at DESC")
                 orders = cursor.fetchall()
-                
                 col_names = [col[0] for col in cursor.description]
                 
                 orders_with_items = []
                 for order in orders:
                     order_dict = dict(zip(col_names, order))
-                    
-                    items = []
-                    try:
-                        items = json.loads(order_dict.get('items', '[]'))
-                    except:
-                        items = []
-                    
+
                     customer_details = {}
                     try:
                         customer_details = json.loads(order_dict.get('customer_details', '{}'))
-                    except:
+                    except Exception:
                         customer_details = {}
-                    
+
+                    # Strict owner isolation: only return orders that belong to the queried user
+                    order_uid = str(order_dict.get('user_id') or customer_details.get('user_id') or '').strip()
+                    order_email = str(customer_details.get('email') or customer_details.get('customer_email') or '').strip().lower()
+
+                    is_owner = (
+                        (order_uid and order_uid in user_identifiers) or
+                        (order_email and order_email in user_identifiers)
+                    )
+
+                    if not is_owner:
+                        continue
+
+                    items = []
+                    try:
+                        items = json.loads(order_dict.get('items', '[]'))
+                    except Exception:
+                        items = []
+
                     orders_with_items.append({
                         "order_id": order_dict.get('order_id') or str(order_dict.get('id')),
                         "numeric_id": order_dict.get('id'),
