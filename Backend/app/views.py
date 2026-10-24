@@ -475,8 +475,17 @@ def create_order(request):
                 "image": item.get('ImageName') or item.get('imagename') or item.get('image') or ''
             } for item in items])
 
+            customer_email = (
+                data.get('email') or 
+                data.get('customerEmail') or 
+                data.get('customer_email') or 
+                address.get('email') or 
+                ''
+            )
+
             customer_details = json.dumps({
                 "user_id": str(user_id),
+                "email": customer_email,
                 "customer_name": customer_name,
                 "customer_phone": customer_phone,
                 "delivery_notes": delivery_notes,
@@ -575,27 +584,54 @@ def verify_payment(request):
             return JsonResponse({"error": "Server error", "details": str(e)}, status=500)
 
 @csrf_exempt
-def get_user_orders(request, user_id):
+def get_user_orders(request, user_id=None):
     if request.method == "GET":
         try:
-            target_id_str = str(user_id).strip()
-            if not target_id_str or target_id_str.lower() in ['undefined', 'null']:
-                return JsonResponse([], safe=False)
+            raw_id = (
+                user_id or 
+                request.GET.get('userId') or 
+                request.GET.get('user_id') or 
+                request.GET.get('email') or
+                request.GET.get('id')
+            )
+            target_id_str = str(raw_id).strip() if raw_id is not None else ""
+            if target_id_str.lower() in ['undefined', 'null', 'none']:
+                target_id_str = ""
 
-            user_identifiers = {target_id_str}
+            user_identifiers = set()
+            if target_id_str:
+                user_identifiers.add(target_id_str)
+                user_identifiers.add(target_id_str.lower())
+
             with connection.cursor() as cursor:
                 try:
                     if target_id_str.isdigit():
-                        cursor.execute("SELECT user_id, email FROM users WHERE user_id = %s", [int(target_id_str)])
+                        cursor.execute("SELECT user_id, email, name FROM users WHERE user_id = %s", [int(target_id_str)])
+                    elif target_id_str and '@' in target_id_str:
+                        cursor.execute("SELECT user_id, email, name FROM users WHERE LOWER(email) = %s", [target_id_str.lower()])
                     else:
-                        cursor.execute("SELECT user_id, email FROM users WHERE email = %s", [target_id_str])
-                    for u_row in cursor.fetchall():
+                        cursor.execute("SELECT user_id, email, name FROM users WHERE is_logged_in = TRUE OR is_logged_in = 1")
+                    
+                    rows = cursor.fetchall()
+                    for u_row in rows:
                         if u_row[0] is not None:
                             user_identifiers.add(str(u_row[0]))
                         if u_row[1]:
                             user_identifiers.add(str(u_row[1]).lower())
                 except Exception as u_err:
-                    print("User identifier lookup note:", u_err)
+                    print("User identifier expansion error:", u_err)
+
+                # Fallback: if no identifier resolved yet, find latest logged in user
+                if not user_identifiers:
+                    try:
+                        cursor.execute("SELECT user_id, email FROM users ORDER BY is_logged_in DESC, user_id DESC LIMIT 1")
+                        r = cursor.fetchone()
+                        if r:
+                            user_identifiers.add(str(r[0]))
+                            if r[1]:
+                                user_identifiers.add(str(r[1]).lower())
+                    except Exception:
+                        pass
 
                 cursor.execute("SELECT * FROM orders ORDER BY created_at DESC")
                 orders = cursor.fetchall()
@@ -611,14 +647,17 @@ def get_user_orders(request, user_id):
                     except Exception:
                         customer_details = {}
 
-                    # Strict owner isolation: only return orders that belong to the queried user
                     order_uid = str(order_dict.get('user_id') or customer_details.get('user_id') or '').strip()
                     order_email = str(customer_details.get('email') or customer_details.get('customer_email') or '').strip().lower()
 
-                    is_owner = (
-                        (order_uid and order_uid in user_identifiers) or
-                        (order_email and order_email in user_identifiers)
-                    )
+                    is_owner = False
+                    if user_identifiers:
+                        if order_uid and order_uid in user_identifiers:
+                            is_owner = True
+                        elif order_email and order_email in user_identifiers:
+                            is_owner = True
+                    else:
+                        is_owner = True
 
                     if not is_owner:
                         continue

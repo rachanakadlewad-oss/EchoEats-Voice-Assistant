@@ -26,22 +26,44 @@ const OrdersPage = () => {
     }, [isLoggedIn, user])
 
     const fetchOrders = async () => {
-        const targetUserId = user?.user_id || user?.id || user?.userId || (() => {
-            try {
-                return JSON.parse(localStorage.getItem('user') || '{}')?.user_id
-            } catch (e) {
-                return null
-            }
-        })()
-
-        if (!targetUserId) {
-            setOrders([])
-            setLoading(false)
-            return
+        let storedUser = null
+        try {
+            storedUser = JSON.parse(localStorage.getItem('user') || 'null')
+        } catch (e) {
+            storedUser = null
         }
 
+        const targetUserId = (
+            user?.user_id ||
+            user?.id ||
+            user?.userId ||
+            user?.email ||
+            storedUser?.user_id ||
+            storedUser?.id ||
+            storedUser?.userId ||
+            storedUser?.email ||
+            ''
+        )
+
         try {
-            const response = await fetch(`${API_URL}/orders/${targetUserId}/`)
+            const url = targetUserId 
+                ? `${API_URL}/orders/${encodeURIComponent(targetUserId)}/`
+                : `${API_URL}/orders/`
+
+            const response = await fetch(url)
+            if (!response.ok) {
+                // Fallback attempt to general orders endpoint
+                const fbRes = await fetch(`${API_URL}/orders/`)
+                const fbData = await fbRes.json()
+                if (Array.isArray(fbData)) {
+                    setOrders(fbData)
+                } else {
+                    setOrders([])
+                }
+                setLoading(false)
+                return
+            }
+
             const data = await response.json()
             
             if (Array.isArray(data)) {
