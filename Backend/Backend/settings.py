@@ -3,15 +3,14 @@ import dj_database_url
 import os
 from dotenv import load_dotenv
 
-# Load .env file
-load_dotenv()
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Load .env files from both Backend and root directory
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR.parent / ".env")
 
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-echo-eats-secret-key-123456789")
 
-DEBUG = os.getenv("DEBUG", "False") == "True"
+DEBUG = os.getenv("DEBUG", "True") == "True"
 
 ALLOWED_HOSTS = ['*']
 
@@ -76,11 +75,18 @@ WSGI_APPLICATION = 'Backend.wsgi.application'
 #     }
 # }
 
-DATABASES = {
-    "default": dj_database_url.config(
-        default=os.environ.get("DATABASE_URL")
-    )
-}
+db_url = os.environ.get("DATABASE_URL", "")
+if db_url and not db_url.startswith("sqlite") and "dpg-" not in db_url:
+    DATABASES = {
+        "default": dj_database_url.config(default=db_url)
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 APPEND_SLASH = False
 

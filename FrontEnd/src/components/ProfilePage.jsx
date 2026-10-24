@@ -7,8 +7,9 @@ const ProfilePage = () => {
     const [orders, setOrders] = useState([])
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('profile')
-    const navigate = useNavigate()
-    const API_URL = import.meta.env.VITE_API_URL;
+    const navigate = useNavigate();
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
     useEffect(() => {
         if (!isLoggedIn) {
             navigate('/login', { state: { from: { pathname: '/profile' } } })

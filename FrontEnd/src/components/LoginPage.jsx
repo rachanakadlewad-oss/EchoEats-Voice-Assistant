@@ -14,7 +14,7 @@ const LoginPage = () => {
   const location = useLocation()
   const from = location.state?.from?.pathname || '/'
 
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   const handleSubmit = async (e) => {
     e.preventDefault()

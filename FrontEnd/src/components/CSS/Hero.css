@@ -532,3 +532,125 @@
         height: 280px;
     }
 }
+
+/* Logged-in Welcome Banner */
+.logged-in-welcome-banner {
+    width: 100%;
+    max-width: 1240px;
+    margin: 24px auto 10px;
+    padding: 0 16px;
+}
+
+.welcome-banner-inner {
+    background: linear-gradient(135deg, rgba(46, 26, 18, 0.95), rgba(28, 17, 12, 0.95));
+    border: 1px solid rgba(255, 120, 60, 0.25);
+    border-radius: 24px;
+    padding: 32px 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+    position: relative;
+    overflow: hidden;
+}
+
+.welcome-banner-inner::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255, 107, 53, 0.25) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.welcome-badge {
+    display: inline-block;
+    background: rgba(255, 107, 53, 0.2);
+    border: 1px solid rgba(255, 107, 53, 0.4);
+    color: #ff9e79;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+}
+
+.welcome-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.5px;
+}
+
+.welcome-highlight {
+    background: linear-gradient(135deg, #ff922b, #ff6b35);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.welcome-subtitle {
+    color: #c7b8ad;
+    font-size: 15px;
+    margin: 0;
+    max-width: 580px;
+}
+
+.welcome-quick-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.welcome-action-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.25s ease;
+}
+
+.welcome-action-chip:hover {
+    background: rgba(255, 255, 255, 0.16);
+    transform: translateY(-2px);
+}
+
+.welcome-action-chip.cart-chip {
+    background: linear-gradient(135deg, #ff7a45, #d9480f);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 14px rgba(217, 72, 15, 0.3);
+}
+
+.welcome-action-chip.cart-chip:hover {
+    background: linear-gradient(135deg, #ff8c5a, #e8590c);
+    box-shadow: 0 6px 18px rgba(217, 72, 15, 0.45);
+}
+
+@media (max-width: 768px) {
+    .welcome-banner-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+        padding: 24px;
+    }
+    .welcome-title {
+        font-size: 22px;
+    }
+    .welcome-quick-actions {
+        width: 100%;
+    }
+    .welcome-action-chip {
+        flex: 1;
+        justify-content: center;
+    }
+}

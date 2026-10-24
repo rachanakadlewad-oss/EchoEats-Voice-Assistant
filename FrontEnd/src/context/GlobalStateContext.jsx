@@ -14,7 +14,7 @@ export const GlobalStateProvider = ({ children }) => {
   const [foodData, setFoodData] = useState([])
   const navigate = useNavigate()
 
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   // ── Derive cart totals from foodData instead of maintaining separate state ──
   const syncCartState = useCallback((data) => {
@@ -193,8 +193,17 @@ export const GlobalStateProvider = ({ children }) => {
     logout,
     login,
     updateQuantity,
+    clearCart,
+    setExactQuantity: async (foodId, newQty) => {
+      const item = foodData.find(f => f.FoodID === foodId);
+      const curr = item?.Quantity || 0;
+      const diff = newQty - curr;
+      if (diff !== 0) {
+        await updateQuantity(foodId, diff);
+      }
+    },
     foodData,
-    fetchFoodData,   // exposed so other components can manually refresh if needed
+    fetchFoodData,
   }
 
   return (

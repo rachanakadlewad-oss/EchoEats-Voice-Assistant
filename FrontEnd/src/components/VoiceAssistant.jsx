@@ -31,7 +31,7 @@ const VoiceAssistant = () => {
   const [transcriptTimeout, setTranscriptTimeout] = useState(null);
   const [processedCommands, setProcessedCommands] = useState([]);
 
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } =
     useSpeechRecognition();
@@ -125,7 +125,7 @@ const VoiceAssistant = () => {
           setTimeout(() => {
             const btns = document.querySelectorAll('.category-btn');
             for (const btn of btns) {
-              if (btn.textContent === commandData.category) {
+              if (btn.textContent.toLowerCase().includes((commandData.category || '').toLowerCase())) {
                 btn.click();
                 break;
               }
