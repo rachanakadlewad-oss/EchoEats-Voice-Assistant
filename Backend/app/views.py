@@ -357,12 +357,18 @@ def signup_user(request):
                 if len(existing) > 0:
                     return JsonResponse({"error": "Email already exists"}, status=400)
                 
-                cursor.execute(
-                    "INSERT INTO users (name, email, password, is_logged_in) VALUES (%s, %s, %s, TRUE)",
-                    [name, email, password]
-                )
-                
-                user_id = cursor.lastrowid
+                if connection.vendor == 'postgresql':
+                    cursor.execute(
+                        "INSERT INTO users (name, email, password, is_logged_in) VALUES (%s, %s, %s, 1) RETURNING user_id",
+                        [name, email, password]
+                    )
+                    user_id = cursor.fetchone()[0]
+                else:
+                    cursor.execute(
+                        "INSERT INTO users (name, email, password, is_logged_in) VALUES (%s, %s, %s, 1)",
+                        [name, email, password]
+                    )
+                    user_id = cursor.lastrowid
             
             return JsonResponse({
                 "success": True,
@@ -605,12 +611,15 @@ def get_user_orders(request, user_id=None):
 
             with connection.cursor() as cursor:
                 try:
-                    if target_id_str.isdigit():
-                        cursor.execute("SELECT user_id, email, name FROM users WHERE user_id = %s", [int(target_id_str)])
-                    elif target_id_str and '@' in target_id_str:
-                        cursor.execute("SELECT user_id, email, name FROM users WHERE LOWER(email) = %s", [target_id_str.lower()])
+                    if target_id_str:
+                        if target_id_str.isdigit():
+                            cursor.execute("SELECT user_id, email, name FROM users WHERE user_id = %s OR LOWER(email) = %s", [int(target_id_str), target_id_str.lower()])
+                        elif '@' in target_id_str:
+                            cursor.execute("SELECT user_id, email, name FROM users WHERE LOWER(email) = %s", [target_id_str.lower()])
+                        else:
+                            cursor.execute("SELECT user_id, email, name FROM users WHERE CAST(user_id AS VARCHAR) = %s OR LOWER(email) = %s OR LOWER(name) = %s", [target_id_str, target_id_str.lower(), target_id_str.lower()])
                     else:
-                        cursor.execute("SELECT user_id, email, name FROM users WHERE is_logged_in = TRUE OR is_logged_in = 1")
+                        cursor.execute("SELECT user_id, email, name FROM users WHERE is_logged_in = 1 OR is_logged_in = TRUE")
                     
                     rows = cursor.fetchall()
                     for u_row in rows:

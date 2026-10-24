@@ -75,10 +75,12 @@ WSGI_APPLICATION = 'Backend.wsgi.application'
 #     }
 # }
 
+is_render = bool(os.environ.get("RENDER")) or bool(os.environ.get("RENDER_INSTANCE_ID"))
 db_url = os.environ.get("DATABASE_URL", "")
-if db_url and not db_url.startswith("sqlite") and "dpg-" not in db_url:
+
+if db_url and not db_url.startswith("sqlite") and (is_render or "dpg-" not in db_url):
     DATABASES = {
-        "default": dj_database_url.config(default=db_url)
+        "default": dj_database_url.config(default=db_url, conn_max_age=600)
     }
 else:
     DATABASES = {
@@ -87,6 +89,7 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
 
 APPEND_SLASH = False
 

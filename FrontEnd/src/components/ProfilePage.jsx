@@ -11,7 +11,8 @@ const ProfilePage = () => {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
     useEffect(() => {
-        if (!isLoggedIn) {
+        const storedLogin = localStorage.getItem('isLoggedIn') === 'true'
+        if (!isLoggedIn && !storedLogin) {
             navigate('/login', { state: { from: { pathname: '/profile' } } })
             return
         }

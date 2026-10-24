@@ -257,6 +257,7 @@ const CartPage = () => {
 
         const customerName = chosenAddr.fullName || user?.name || storedUser?.name || 'Customer'
         const customerPhone = chosenAddr.phone || ''
+        const customerEmail = user?.email || storedUser?.email || ''
 
         try {
             const payload = {
@@ -277,10 +278,13 @@ const CartPage = () => {
                 customer_name: customerName,
                 customerPhone: customerPhone,
                 customer_phone: customerPhone,
+                email: customerEmail,
+                customer_email: customerEmail,
                 customer_details: {
                     user_id: resolvedUserId,
                     customer_name: customerName,
                     customer_phone: customerPhone,
+                    email: customerEmail,
                     address: chosenAddr,
                     delivery_notes: deliveryNotes || ''
                 }

@@ -7,10 +7,39 @@ export const GlobalStateProvider = ({ children }) => {
   const [Quantity, setQuantity] = useState(0)
   const [Togg, setTogg] = useState(false)
   const [displayCart, setDisplayCart] = useState(false)
-  const [user, setUser] = useState(null)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [sessionId, setSessionId] = useState('')
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('user')
+      const savedLoginState = localStorage.getItem('isLoggedIn')
+      if (savedUser && savedLoginState === 'true') {
+        return JSON.parse(savedUser)
+      }
+    } catch (e) {
+      console.error('Error parsing stored user:', e)
+    }
+    return null
+  })
+
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    try {
+      const savedLoginState = localStorage.getItem('isLoggedIn')
+      return savedLoginState === 'true' && Boolean(localStorage.getItem('user'))
+    } catch (e) {
+      return false
+    }
+  })
+
+  const [loading, setLoading] = useState(false)
+
+  const [sessionId, setSessionId] = useState(() => {
+    let sid = localStorage.getItem('sessionId')
+    if (!sid) {
+      sid = 'session_' + Math.random().toString(36).substr(2, 9)
+      localStorage.setItem('sessionId', sid)
+    }
+    return sid
+  })
+
   const [foodData, setFoodData] = useState([])
   const navigate = useNavigate()
 
@@ -37,21 +66,6 @@ export const GlobalStateProvider = ({ children }) => {
 
   // ── Session ID + user restore + initial data fetch (runs once) ─────────────
   useEffect(() => {
-    let sid = localStorage.getItem('sessionId')
-    if (!sid) {
-      sid = 'session_' + Math.random().toString(36).substr(2, 9)
-      localStorage.setItem('sessionId', sid)
-    }
-    setSessionId(sid)
-
-    const savedUser = localStorage.getItem('user')
-    const savedLoginState = localStorage.getItem('isLoggedIn')
-    if (savedUser && savedLoginState === 'true') {
-      setUser(JSON.parse(savedUser))
-      setIsLoggedIn(true)
-    }
-
-    setLoading(false)
     fetchFoodData()           // single fetch — no interval
   }, [fetchFoodData])
 
