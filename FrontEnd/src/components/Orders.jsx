@@ -23,11 +23,25 @@ const OrdersPage = () => {
         fetchOrders()
         const intervalId = setInterval(fetchOrders, 8000)
         return () => clearInterval(intervalId)
-    }, [isLoggedIn])
+    }, [isLoggedIn, user])
 
     const fetchOrders = async () => {
+        const targetUserId = user?.user_id || user?.id || user?.userId || (() => {
+            try {
+                return JSON.parse(localStorage.getItem('user') || '{}')?.user_id
+            } catch (e) {
+                return null
+            }
+        })()
+
+        if (!targetUserId) {
+            setOrders([])
+            setLoading(false)
+            return
+        }
+
         try {
-            const response = await fetch(`${API_URL}/orders/${user.user_id}/`)
+            const response = await fetch(`${API_URL}/orders/${targetUserId}/`)
             const data = await response.json()
             
             if (Array.isArray(data)) {

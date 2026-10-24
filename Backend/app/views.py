@@ -182,18 +182,6 @@ Based on the user's voice input, respond with ONE of these command types:
 Return ONLY the JSON object, no additional text.
 """
             
-<<<<<<< HEAD
-            response = openai_client.chat.completions.create(
-                model="openai/gpt-oss-120b",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a helpful food ordering assistant. Always respond with valid JSON only."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-=======
             models_to_try = ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "llama-3.3-70b-versatile"]
             command_data = None
             raw_content = ""
@@ -265,7 +253,6 @@ Return ONLY the JSON object, no additional text.
                     command_data = {
                         "command": "UNKNOWN",
                         "response": "I heard you! Try saying 'Show pizzas', 'Open cart', or 'Go to orders'."
->>>>>>> cb3991b (fix:UI)
                     }
 
             return JsonResponse({
@@ -411,22 +398,75 @@ def create_order(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            user_id = data.get('userId')
+            print("Creating order received data keys:", list(data.keys()))
+            
+            # Resolve user_id from all possible frontend formats
+            user_id = (
+                data.get('userId') or 
+                data.get('user_id') or 
+                data.get('id') or 
+                data.get('sessionId') or 
+                data.get('session_id')
+            )
+            if not user_id and isinstance(data.get('customer_details'), dict):
+                user_id = data.get('customer_details').get('user_id') or data.get('customer_details').get('userId')
+            
+            # Resolve amount from all possible names
             amount = data.get('amount')
-            items = data.get('items', [])
-            payment_method = data.get('paymentMethod', 'COD')
-            address = data.get('address', {})
-            delivery_notes = data.get('deliveryNotes', '')
-            customer_name = data.get('customerName', '')
-            customer_phone = data.get('customerPhone', '')
-            
-            print("Creating order:", {"userId": user_id, "amount": amount, "itemCount": len(items), "paymentMethod": payment_method})
-            
-            if not user_id or amount is None or not items or not len(items):
-                return JsonResponse({"success": False, "error": "Missing required fields"}, status=400)
-            
+            if amount is None:
+                amount = data.get('total')
+            if amount is None:
+                amount = data.get('grandTotal')
+            if amount is not None:
+                try:
+                    amount = float(amount)
+                except (ValueError, TypeError):
+                    amount = None
+
+            # Resolve items list
+            items = data.get('items')
+            if items is None:
+                items = data.get('cartItems')
+            if isinstance(items, str):
+                try:
+                    items = json.loads(items)
+                except Exception:
+                    items = []
+            elif not isinstance(items, list):
+                items = []
+
+            # Check for missing required fields
+            missing = []
+            if not user_id:
+                missing.append("userId")
+            if amount is None or amount < 0:
+                missing.append("amount")
+            if not items or len(items) == 0:
+                missing.append("items")
+
+            if missing:
+                error_msg = f"Missing required fields: {', '.join(missing)}"
+                print("create_order error:", error_msg, "Data payload:", data)
+                return JsonResponse({"success": False, "error": error_msg}, status=400)
+
+            payment_method = data.get('paymentMethod') or data.get('payment_method') or 'COD'
+            address = data.get('address') or data.get('deliveryAddress') or {}
+            delivery_notes = data.get('deliveryNotes') or data.get('delivery_notes') or ''
+            customer_name = (
+                data.get('customerName') or 
+                data.get('customer_name') or 
+                address.get('fullName') or 
+                'Customer'
+            )
+            customer_phone = (
+                data.get('customerPhone') or 
+                data.get('customer_phone') or 
+                address.get('phone') or 
+                ''
+            )
+
             order_id = 'ORD_' + str(int(datetime.now().timestamp())) + '_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=5))
-            
+
             items_json = json.dumps([{
                 "name": item.get('FoodName') or item.get('foodname') or item.get('name') or "Delicious Item",
                 "food_id": item.get('FoodID') or item.get('foodid') or item.get('id'),
@@ -434,9 +474,9 @@ def create_order(request):
                 "price": float(item.get('Price') or item.get('price') or 0),
                 "image": item.get('ImageName') or item.get('imagename') or item.get('image') or ''
             } for item in items])
-            
+
             customer_details = json.dumps({
-                "user_id": user_id,
+                "user_id": str(user_id),
                 "customer_name": customer_name,
                 "customer_phone": customer_phone,
                 "delivery_notes": delivery_notes,

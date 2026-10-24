@@ -17,6 +17,7 @@ const CartPage = () => {
     const [checkoutStep, setCheckoutStep] = useState(1) // 1: Address, 2: Summary, 3: Payment, 4: Success
     const [loading, setLoading] = useState(false)
     const [confirmedOrder, setConfirmedOrder] = useState(null)
+    const [checkoutError, setCheckoutError] = useState('')
     
     // Delivery Address Management (ShopVerse-like)
     const [addresses, setAddresses] = useState([])
@@ -181,8 +182,12 @@ const CartPage = () => {
 
     // Checkout initiation
     const handleStartCheckout = () => {
+        setCheckoutError('')
         if (!isLoggedIn) {
             navigate('/login', { state: { from: { pathname: '/cart' } } })
+            return
+        }
+        if (!cartItems || cartItems.length === 0) {
             return
         }
         setIsCheckoutOpen(true)
@@ -191,19 +196,94 @@ const CartPage = () => {
 
     // Place Order handler (COD & UPI)
     const handlePlaceOrder = async () => {
+        setCheckoutError('')
         setLoading(true)
+
+        // 1. Client-side field validations before network request
         const chosenAddr = getSelectedAddress()
+        if (!chosenAddr || !chosenAddr.street || !chosenAddr.phone) {
+            setCheckoutError('Please select or add a valid delivery address with street and contact number.')
+            setCheckoutStep(1)
+            setLoading(false)
+            return
+        }
+
+        if (!cartItems || cartItems.length === 0) {
+            setCheckoutError('Your cart is empty. Please add delicious items to your cart before placing an order.')
+            setLoading(false)
+            return
+        }
+
+        const finalAmount = Number(grandTotal)
+        if (isNaN(finalAmount) || finalAmount < 0) {
+            setCheckoutError('Invalid order total. Please review your cart items.')
+            setLoading(false)
+            return
+        }
+
+        // Format items properly with expected schema
+        const formattedItems = cartItems.map(item => ({
+            FoodID: item.FoodID || item.food_id || item.id,
+            FoodName: item.FoodName || item.name || 'Delicious Dish',
+            Quantity: Number(item.Quantity || item.quantity || 1),
+            Price: Number(item.Price || item.price || 0),
+            ImageName: item.ImageName || item.image || ''
+        })).filter(i => i.Quantity > 0 && i.Price >= 0)
+
+        if (formattedItems.length === 0) {
+            setCheckoutError('No valid items found in cart. Please check your item quantities.')
+            setLoading(false)
+            return
+        }
+
+        // Defensive user extraction with multi-source fallback
+        let storedUser = null
+        try {
+            storedUser = JSON.parse(localStorage.getItem('user') || 'null')
+        } catch (e) {
+            storedUser = null
+        }
+
+        const resolvedUserId = (
+            user?.user_id ||
+            user?.id ||
+            user?.userId ||
+            storedUser?.user_id ||
+            storedUser?.id ||
+            storedUser?.userId ||
+            localStorage.getItem('sessionId') ||
+            'guest_' + Date.now()
+        )
+
+        const customerName = chosenAddr.fullName || user?.name || storedUser?.name || 'Customer'
+        const customerPhone = chosenAddr.phone || ''
 
         try {
             const payload = {
-                userId: user.user_id,
-                amount: grandTotal,
-                items: cartItems,
+                userId: resolvedUserId,
+                user_id: resolvedUserId,
+                amount: finalAmount,
+                total: finalAmount,
+                grandTotal: finalAmount,
+                items: formattedItems,
+                cartItems: formattedItems,
                 paymentMethod: paymentMethod,
+                payment_method: paymentMethod,
                 address: chosenAddr,
-                deliveryNotes: deliveryNotes,
-                customerName: chosenAddr.fullName || user.name,
-                customerPhone: chosenAddr.phone || ''
+                deliveryAddress: chosenAddr,
+                deliveryNotes: deliveryNotes || '',
+                delivery_notes: deliveryNotes || '',
+                customerName: customerName,
+                customer_name: customerName,
+                customerPhone: customerPhone,
+                customer_phone: customerPhone,
+                customer_details: {
+                    user_id: resolvedUserId,
+                    customer_name: customerName,
+                    customer_phone: customerPhone,
+                    address: chosenAddr,
+                    delivery_notes: deliveryNotes || ''
+                }
             }
 
             const res = await fetch(`${API_URL}/create-order/`, {
@@ -214,25 +294,32 @@ const CartPage = () => {
 
             const orderData = await res.json()
 
-            if (!orderData.success) {
-                throw new Error(orderData.error || "Order creation failed")
+            if (!res.ok || !orderData.success) {
+                const errMsg = orderData.error || orderData.details || "Order creation failed. Please check required fields."
+                setCheckoutError(errMsg)
+                setLoading(false)
+                return
             }
 
             // Handle UPI / Online via Razorpay
             if (paymentMethod === 'UPI' && orderData.razorpayOrderId) {
                 // If it's a simulated order or Razorpay test
                 if (orderData.razorpayOrderId.startsWith('order_sim_') || orderData.razorpayOrderId.startsWith('order_test_')) {
-                    // Call verify-payment directly for test flow
-                    await fetch(`${API_URL}/verify-payment/`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            razorpay_payment_id: `pay_test_${Date.now()}`,
-                            razorpay_order_id: orderData.razorpayOrderId,
-                            razorpay_signature: 'test_signature_valid',
-                            orderId: orderData.orderId
+                    // Call verify-payment for test flow
+                    try {
+                        await fetch(`${API_URL}/verify-payment/`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                razorpay_payment_id: `pay_test_${Date.now()}`,
+                                razorpay_order_id: orderData.razorpayOrderId,
+                                razorpay_signature: 'test_signature_valid',
+                                orderId: orderData.orderId
+                            })
                         })
-                    })
+                    } catch (vErr) {
+                        console.warn("Payment verification note:", vErr)
+                    }
 
                     finishOrder(orderData.orderId, chosenAddr)
                     return
@@ -240,18 +327,25 @@ const CartPage = () => {
 
                 // If real Razorpay key
                 if (!window.Razorpay) {
-                    await new Promise((resolve, reject) => {
-                        const script = document.createElement('script')
-                        script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-                        script.onload = resolve
-                        script.onerror = reject
-                        document.body.appendChild(script)
-                    })
+                    try {
+                        await new Promise((resolve, reject) => {
+                            const script = document.createElement('script')
+                            script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+                            script.onload = resolve
+                            script.onerror = reject
+                            document.body.appendChild(script)
+                        })
+                    } catch (scriptErr) {
+                        console.error('Razorpay SDK failed to load', scriptErr)
+                        // Fallback gracefully
+                        finishOrder(orderData.orderId, chosenAddr)
+                        return
+                    }
                 }
 
                 const options = {
                     key: 'rzp_test_SdTWYyzys8e6Zq',
-                    amount: grandTotal * 100,
+                    amount: Math.round(finalAmount * 100),
                     currency: 'INR',
                     name: 'EchoEats',
                     description: 'Order Payment',
@@ -268,22 +362,20 @@ const CartPage = () => {
                                     orderId: orderData.orderId
                                 })
                             })
-                            const vData = await vRes.json()
-                            if (vData.success) {
-                                finishOrder(orderData.orderId, chosenAddr)
-                            } else {
-                                alert("Payment verification check: " + (vData.error || "Please check orders"))
-                                finishOrder(orderData.orderId, chosenAddr)
+                            const vData = await vRes.json().catch(() => ({}))
+                            if (!vData.success) {
+                                console.warn("Payment verification status:", vData.error)
                             }
+                            finishOrder(orderData.orderId, chosenAddr)
                         } catch (err) {
                             console.error(err)
                             finishOrder(orderData.orderId, chosenAddr)
                         }
                     },
                     prefill: {
-                        name: user.name,
-                        email: user.email,
-                        contact: chosenAddr.phone || ''
+                        name: customerName,
+                        email: user?.email || storedUser?.email || '',
+                        contact: customerPhone
                     },
                     theme: { color: '#ff6b35' },
                     modal: {
@@ -301,12 +393,13 @@ const CartPage = () => {
 
         } catch (error) {
             console.error("Order error:", error)
-            alert("Error placing order: " + error.message)
+            setCheckoutError("Error placing order: " + (error.message || "Network error. Please try again."))
             setLoading(false)
         }
     }
 
     const finishOrder = async (orderId, address) => {
+        setCheckoutError('')
         setConfirmedOrder({
             orderId,
             items: [...cartItems],
@@ -654,6 +747,24 @@ const CartPage = () => {
 
                         {/* Modal Body */}
                         <div className="checkout-modal-body">
+                            {checkoutError && (
+                                <div className="checkout-error-banner" role="alert">
+                                    <span className="error-icon">⚠️</span>
+                                    <div className="error-text">
+                                        <strong>Checkout Alert:</strong>
+                                        <p>{checkoutError}</p>
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        className="error-dismiss-btn" 
+                                        onClick={() => setCheckoutError('')}
+                                        aria-label="Dismiss alert"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            )}
+
                             {/* STEP 1: ADDRESS MANAGEMENT */}
                             {checkoutStep === 1 && (
                                 <div className="checkout-step-view">
