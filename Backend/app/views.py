@@ -361,12 +361,26 @@ def login_user(request):
                 except Exception as log_err:
                     print("Update login status note:", log_err)
 
+                # Read saved addresses from user's database record
+                raw_addr = user_dict.get('address')
+                saved_addresses = []
+                if raw_addr:
+                    try:
+                        parsed = json.loads(raw_addr)
+                        if isinstance(parsed, list):
+                            saved_addresses = parsed
+                        elif isinstance(parsed, dict) and parsed:
+                            saved_addresses = [parsed]
+                    except Exception:
+                        saved_addresses = []
+
                 return JsonResponse({
                     "success": True,
                     "user": {
                         "user_id": user_dict['user_id'],
                         "name": user_dict['name'],
-                        "email": user_dict['email']
+                        "email": user_dict['email'],
+                        "addresses": saved_addresses
                     }
                 })
             else:
@@ -386,7 +400,7 @@ def signup_user(request):
         except Exception:
             return JsonResponse({"error": "Invalid JSON payload"}, status=400)
 
-        name = str(data.get('name') or '').strip()
+        name = str(data.get('name') or data.get('username') or '').strip()
         email = str(data.get('email') or '').strip().lower()
         password = str(data.get('password') or '').strip()
 
@@ -452,16 +466,173 @@ def signup_user(request):
 
         return JsonResponse({
             "success": True,
+            "user_id": user_id,
             "user": {
                 "user_id": user_id,
                 "name": name,
-                "email": email
+                "email": email,
+                "addresses": []
             }
         })
 
     except Exception as e:
         print("Signup error:", e)
         return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
+
+@csrf_exempt
+def user_address_operations(request, user_id=None):
+    if request.method == "GET":
+        try:
+            raw_id = (
+                user_id or 
+                request.GET.get('userId') or 
+                request.GET.get('user_id') or 
+                request.GET.get('email')
+            )
+            target = str(raw_id or '').strip()
+            if not target or target.lower() in ['undefined', 'null', 'none']:
+                return JsonResponse({"success": True, "addresses": []})
+
+            with connection.cursor() as cursor:
+                if target.isdigit():
+                    cursor.execute("SELECT address FROM users WHERE user_id = %s OR LOWER(email) = %s", [int(target), target.lower()])
+                else:
+                    cursor.execute("SELECT address FROM users WHERE LOWER(email) = %s", [target.lower()])
+
+                row = cursor.fetchone()
+                saved_addresses = []
+                if row and row[0]:
+                    try:
+                        parsed = json.loads(row[0])
+                        if isinstance(parsed, list):
+                            saved_addresses = parsed
+                        elif isinstance(parsed, dict) and parsed:
+                            saved_addresses = [parsed]
+                    except Exception:
+                        saved_addresses = []
+
+            return JsonResponse({"success": True, "addresses": saved_addresses})
+
+        except Exception as e:
+            print("Error fetching user address:", e)
+            return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
+
+    elif request.method == "POST":
+        try:
+            try:
+                data = json.loads(request.body)
+            except Exception:
+                data = {}
+
+            raw_id = (
+                user_id or 
+                data.get('userId') or 
+                data.get('user_id') or 
+                data.get('email') or 
+                request.GET.get('userId') or 
+                request.GET.get('user_id')
+            )
+            target = str(raw_id or '').strip()
+            if not target or target.lower() in ['undefined', 'null', 'none']:
+                return JsonResponse({"error": "User ID is required to save address"}, status=400)
+
+            incoming_addresses = data.get('addresses')
+            if incoming_addresses is None and 'address' in data:
+                incoming_addresses = [data['address']] if data['address'] else []
+
+            if not isinstance(incoming_addresses, list):
+                incoming_addresses = []
+
+            addresses_json = json.dumps(incoming_addresses)
+
+            with connection.cursor() as cursor:
+                if target.isdigit():
+                    cursor.execute(
+                        "UPDATE users SET address = %s WHERE user_id = %s OR LOWER(email) = %s",
+                        [addresses_json, int(target), target.lower()]
+                    )
+                else:
+                    cursor.execute(
+                        "UPDATE users SET address = %s WHERE LOWER(email) = %s",
+                        [addresses_json, target.lower()]
+                    )
+
+            return JsonResponse({
+                "success": True, 
+                "addresses": incoming_addresses,
+                "message": "Delivery address saved successfully"
+            })
+
+        except Exception as e:
+            print("Error saving user address:", e)
+            return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
+
+    elif request.method == "DELETE":
+        try:
+            raw_id = (
+                user_id or 
+                request.GET.get('userId') or 
+                request.GET.get('user_id') or 
+                request.GET.get('email')
+            )
+            target = str(raw_id or '').strip()
+            if not target or target.lower() in ['undefined', 'null', 'none']:
+                return JsonResponse({"error": "User ID is required to delete address"}, status=400)
+
+            address_id = request.GET.get('addressId') or request.GET.get('id')
+            if not address_id and request.body:
+                try:
+                    data = json.loads(request.body)
+                    address_id = data.get('addressId') or data.get('id')
+                except Exception:
+                    pass
+
+            with connection.cursor() as cursor:
+                if target.isdigit():
+                    cursor.execute("SELECT address FROM users WHERE user_id = %s OR LOWER(email) = %s", [int(target), target.lower()])
+                else:
+                    cursor.execute("SELECT address FROM users WHERE LOWER(email) = %s", [target.lower()])
+
+                row = cursor.fetchone()
+                existing_addrs = []
+                if row and row[0]:
+                    try:
+                        parsed = json.loads(row[0])
+                        if isinstance(parsed, list):
+                            existing_addrs = parsed
+                        elif isinstance(parsed, dict) and parsed:
+                            existing_addrs = [parsed]
+                    except Exception:
+                        existing_addrs = []
+
+                if address_id:
+                    updated_addrs = [a for a in existing_addrs if str(a.get('id')) != str(address_id)]
+                else:
+                    updated_addrs = []
+
+                addresses_json = json.dumps(updated_addrs)
+                if target.isdigit():
+                    cursor.execute(
+                        "UPDATE users SET address = %s WHERE user_id = %s OR LOWER(email) = %s",
+                        [addresses_json, int(target), target.lower()]
+                    )
+                else:
+                    cursor.execute(
+                        "UPDATE users SET address = %s WHERE LOWER(email) = %s",
+                        [addresses_json, target.lower()]
+                    )
+
+            return JsonResponse({
+                "success": True,
+                "addresses": updated_addrs,
+                "message": "Delivery address deleted successfully"
+            })
+
+        except Exception as e:
+            print("Error deleting user address:", e)
+            return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
 
 @csrf_exempt
 def logout_user(request, user_id=None):
@@ -525,6 +696,8 @@ def create_order(request):
                 amount = data.get('total')
             if amount is None:
                 amount = data.get('grandTotal')
+            if amount is None and isinstance(data.get('pricing'), dict):
+                amount = data.get('pricing').get('total') or data.get('pricing').get('grandTotal')
             if amount is not None:
                 try:
                     amount = float(amount)
@@ -543,6 +716,13 @@ def create_order(request):
             elif not isinstance(items, list):
                 items = []
 
+            # If amount still None, compute from items
+            if amount is None and items:
+                try:
+                    amount = sum(float(it.get('price') or it.get('Price') or 0) * int(it.get('quantity') or it.get('Quantity') or 1) for it in items)
+                except Exception:
+                    amount = None
+
             # Check for missing required fields
             missing = []
             if not user_id:
@@ -558,17 +738,20 @@ def create_order(request):
                 return JsonResponse({"success": False, "error": error_msg}, status=400)
 
             payment_method = data.get('paymentMethod') or data.get('payment_method') or 'COD'
-            address = data.get('address') or data.get('deliveryAddress') or {}
+            cust_obj = data.get('customer_details') if isinstance(data.get('customer_details'), dict) else {}
+            address = data.get('address') or data.get('deliveryAddress') or cust_obj.get('address') or {}
             delivery_notes = data.get('deliveryNotes') or data.get('delivery_notes') or ''
             customer_name = (
                 data.get('customerName') or 
                 data.get('customer_name') or 
+                cust_obj.get('name') or
                 address.get('fullName') or 
                 'Customer'
             )
             customer_phone = (
                 data.get('customerPhone') or 
                 data.get('customer_phone') or 
+                cust_obj.get('phone') or
                 address.get('phone') or 
                 ''
             )
@@ -629,10 +812,41 @@ def create_order(request):
                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                     [str(user_id), order_id, amount, 'INR', payment_method, 'placed', items_json, customer_details, razorpay_order_id]
                 )
+
+            # If user is a registered user, ensure this address is saved in their user profile record
+            if str(user_id).isdigit() and isinstance(address, dict) and address.get('street'):
+                try:
+                    with connection.cursor() as addr_cursor:
+                        addr_cursor.execute("SELECT address FROM users WHERE user_id = %s", [int(user_id)])
+                        u_row = addr_cursor.fetchone()
+                        existing_addrs = []
+                        if u_row and u_row[0]:
+                            try:
+                                parsed = json.loads(u_row[0])
+                                existing_addrs = parsed if isinstance(parsed, list) else [parsed]
+                            except Exception:
+                                existing_addrs = []
+
+                        exists = any(
+                            a.get('street') == address.get('street') and a.get('pincode') == address.get('pincode')
+                            for a in existing_addrs
+                        )
+                        if not exists:
+                            addr_copy = dict(address)
+                            if 'id' not in addr_copy or not addr_copy['id']:
+                                addr_copy['id'] = int(datetime.now().timestamp() * 1000)
+                            existing_addrs.append(addr_copy)
+                            addr_cursor.execute(
+                                "UPDATE users SET address = %s WHERE user_id = %s",
+                                [json.dumps(existing_addrs), int(user_id)]
+                            )
+                except Exception as addr_sync_err:
+                    print("Note syncing address to user profile:", addr_sync_err)
             
             response_data = {
                 "success": True,
                 "orderId": order_id,
+                "order_id": order_id,
                 "message": "Order created successfully"
             }
             

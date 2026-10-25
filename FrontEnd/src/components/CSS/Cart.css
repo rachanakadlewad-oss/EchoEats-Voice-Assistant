@@ -763,6 +763,47 @@
     align-self: flex-end;
 }
 
+/* Empty Address Card State */
+.no-address-card {
+    text-align: center;
+    background: rgba(255, 120, 60, 0.05);
+    border: 1.5px dashed rgba(255, 120, 60, 0.35);
+    border-radius: 20px;
+    padding: 36px 20px;
+    margin: 16px 0 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s ease;
+}
+
+.no-address-card:hover {
+    border-color: rgba(255, 120, 60, 0.6);
+    background: rgba(255, 120, 60, 0.08);
+}
+
+.no-address-icon {
+    font-size: 38px;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 4px 10px rgba(255, 107, 53, 0.3));
+}
+
+.no-address-card h4 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+}
+
+.no-address-card p {
+    color: #a89e95;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0 auto 16px;
+    max-width: 380px;
+}
+
 /* New Address Form */
 .new-address-form {
     background: rgba(0, 0, 0, 0.25);

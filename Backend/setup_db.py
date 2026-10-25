@@ -75,6 +75,7 @@ def initialize_database():
                         email VARCHAR(100) UNIQUE NOT NULL,
                         password VARCHAR(255) NOT NULL,
                         is_logged_in INTEGER DEFAULT 0,
+                        address TEXT,
                         created_at TIMESTAMP DEFAULT {timestamp_default}
                     )
                 """)
@@ -82,6 +83,18 @@ def initialize_database():
                 if is_postgres:
                     connection.rollback()
                 print(f"[EchoEats] Note creating users table: {e}")
+
+            # Check if address column exists on users table, add it if missing
+            try:
+                cursor.execute("SELECT * FROM users LIMIT 0")
+                existing_user_cols = [c[0].lower() for c in cursor.description]
+                if 'address' not in existing_user_cols:
+                    cursor.execute("ALTER TABLE users ADD COLUMN address TEXT")
+                    print("[EchoEats] Added missing address column to users table.")
+            except Exception as col_err:
+                if is_postgres:
+                    connection.rollback()
+                print(f"[EchoEats] Note verifying users address column: {col_err}")
 
             # For PostgreSQL: verify and align is_logged_in column type
             if is_postgres:

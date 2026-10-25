@@ -14,3 +14,9 @@ from django.core.wsgi import get_wsgi_application
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Backend.settings')
 
 application = get_wsgi_application()
+
+try:
+    from setup_db import initialize_database
+    initialize_database()
+except Exception as e:
+    print("[EchoEats] WSGI initialize_database warning:", e)

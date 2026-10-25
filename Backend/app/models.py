@@ -63,6 +63,7 @@ class Users(models.Model):
     email = models.CharField(max_length=100, unique=True)
     password = models.CharField(max_length=255)
     is_logged_in = models.IntegerField(default=0)
+    address = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

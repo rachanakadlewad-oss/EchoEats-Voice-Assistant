@@ -47,55 +47,68 @@ const CartPage = () => {
         setSubtotal(sum)
     }, [foodData])
 
-    // Load saved addresses for user
+    // Load saved addresses for logged-in user from backend and user-isolated localStorage
     useEffect(() => {
-        const storageKey = user ? `echoeats_addresses_${user.user_id}` : 'echoeats_guest_addresses'
-        const saved = localStorage.getItem(storageKey)
-        if (saved) {
-            try {
+        let isMounted = true
+        const uid = user?.user_id || user?.id || user?.userId
+        const storageKey = uid ? `echoeats_addresses_${uid}` : 'echoeats_guest_addresses'
+
+        // 1. Initial load from user-isolated local cache (if any)
+        let cached = []
+        try {
+            const saved = localStorage.getItem(storageKey)
+            if (saved) {
                 const parsed = JSON.parse(saved)
-                setAddresses(parsed)
-                if (parsed.length > 0) {
-                    setSelectedAddressId(parsed[0].id)
+                if (Array.isArray(parsed)) {
+                    cached = parsed
                 }
-            } catch (e) {
-                console.error(e)
             }
-        } else {
-            // Default sample addresses
-            const defaults = [
-                {
-                    id: 1,
-                    fullName: user?.name || 'Alex Turner',
-                    phone: '9876543210',
-                    street: 'Flat 402, Green Valley Apartments, 12th Main Road',
-                    landmark: 'Near Indiranagar Metro Station',
-                    city: 'Bengaluru',
-                    state: 'Karnataka',
-                    pincode: '560038',
-                    type: 'Home'
-                },
-                {
-                    id: 2,
-                    fullName: user?.name || 'Alex Turner',
-                    phone: '9876543210',
-                    street: 'Tech Park Blvd, Tower B, 3rd Floor',
-                    landmark: 'Opposite Central Mall',
-                    city: 'Bengaluru',
-                    state: 'Karnataka',
-                    pincode: '560100',
-                    type: 'Work'
+        } catch (e) {
+            cached = []
+        }
+
+        if (isMounted) {
+            setAddresses(cached)
+            if (cached.length > 0) {
+                setSelectedAddressId(cached[0].id)
+            } else {
+                setSelectedAddressId(null)
+            }
+        }
+
+        // 2. Fetch fresh saved addresses from backend database record
+        if (uid) {
+            const fetchUserAddresses = async () => {
+                try {
+                    const res = await fetch(`${API_URL}/user/address/${encodeURIComponent(uid)}/`)
+                    if (res.ok) {
+                        const data = await res.json()
+                        if (isMounted && data.success && Array.isArray(data.addresses)) {
+                            setAddresses(data.addresses)
+                            if (data.addresses.length > 0) {
+                                setSelectedAddressId(prev => {
+                                    const exists = data.addresses.some(a => a.id === prev)
+                                    return exists ? prev : data.addresses[0].id
+                                })
+                            } else {
+                                setSelectedAddressId(null)
+                            }
+                            localStorage.setItem(storageKey, JSON.stringify(data.addresses))
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error fetching user addresses from backend:", err)
                 }
-            ]
-            setAddresses(defaults)
-            setSelectedAddressId(1)
-            localStorage.setItem(storageKey, JSON.stringify(defaults))
+            }
+            fetchUserAddresses()
         }
 
         if (user && user.name) {
             setNewAddress(prev => ({ ...prev, fullName: user.name }))
         }
-    }, [user])
+
+        return () => { isMounted = false }
+    }, [user, API_URL])
 
     // Auto-open payment modal if hash contains payment-modal
     useEffect(() => {
@@ -146,10 +159,10 @@ const CartPage = () => {
         setAppliedCoupon('')
     }
 
-    // Address actions
-    const handleSaveNewAddress = (e) => {
+    // Address actions: save new address & persist to user's database record
+    const handleSaveNewAddress = async (e) => {
         e.preventDefault()
-        if (!newAddress.fullName || !newAddress.phone || !newAddress.street || !newAddress.pincode) {
+        if (!newAddress.fullName || !newAddress.phone || !newAddress.street || !newAddress.city || !newAddress.pincode) {
             alert('Please fill all required address fields.')
             return
         }
@@ -161,23 +174,51 @@ const CartPage = () => {
         setSelectedAddressId(newId)
         setShowNewAddressForm(false)
 
-        const storageKey = user ? `echoeats_addresses_${user.user_id}` : 'echoeats_guest_addresses'
+        const uid = user?.user_id || user?.id || user?.userId
+        const storageKey = uid ? `echoeats_addresses_${uid}` : 'echoeats_guest_addresses'
         localStorage.setItem(storageKey, JSON.stringify(updated))
+
+        // Persist to database for logged in user
+        if (uid) {
+            try {
+                await fetch(`${API_URL}/user/address/${encodeURIComponent(uid)}/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: uid, addresses: updated })
+                })
+            } catch (err) {
+                console.error("Error saving address to backend database:", err)
+            }
+        }
     }
 
-    const handleDeleteAddress = (id, e) => {
+    const handleDeleteAddress = async (id, e) => {
         e.stopPropagation()
         const updated = addresses.filter(a => a.id !== id)
         setAddresses(updated)
-        if (selectedAddressId === id && updated.length > 0) {
-            setSelectedAddressId(updated[0].id)
+        if (selectedAddressId === id) {
+            setSelectedAddressId(updated.length > 0 ? updated[0].id : null)
         }
-        const storageKey = user ? `echoeats_addresses_${user.user_id}` : 'echoeats_guest_addresses'
+        const uid = user?.user_id || user?.id || user?.userId
+        const storageKey = uid ? `echoeats_addresses_${uid}` : 'echoeats_guest_addresses'
         localStorage.setItem(storageKey, JSON.stringify(updated))
+
+        // Persist deletion to database for logged in user
+        if (uid) {
+            try {
+                await fetch(`${API_URL}/user/address/${encodeURIComponent(uid)}/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: uid, addresses: updated })
+                })
+            } catch (err) {
+                console.error("Error persisting address deletion to database:", err)
+            }
+        }
     }
 
     const getSelectedAddress = () => {
-        return addresses.find(a => a.id === selectedAddressId) || addresses[0] || {}
+        return addresses.find(a => a.id === selectedAddressId) || (addresses.length > 0 ? addresses[0] : {})
     }
 
     // Checkout initiation
@@ -192,6 +233,9 @@ const CartPage = () => {
         }
         setIsCheckoutOpen(true)
         setCheckoutStep(1)
+        if (addresses.length === 0) {
+            setShowNewAddressForm(true)
+        }
     }
 
     // Place Order handler (COD & UPI)
@@ -850,6 +894,20 @@ const CartPage = () => {
                                                 Save and Select Address
                                             </button>
                                         </form>
+                                    ) : addresses.length === 0 ? (
+                                        <div className="no-address-card">
+                                            <div className="no-address-icon">📍</div>
+                                            <h4>No Delivery Address Added</h4>
+                                            <p>You have not added any delivery address yet. Please add an address to place your order.</p>
+                                            <button 
+                                                type="button" 
+                                                className="save-address-submit-btn" 
+                                                onClick={() => setShowNewAddressForm(true)}
+                                                style={{ maxWidth: '280px', marginTop: '12px' }}
+                                            >
+                                                + Add Delivery Address
+                                            </button>
+                                        </div>
                                     ) : (
                                         <div className="saved-addresses-grid">
                                             {addresses.map((addr) => (
@@ -862,15 +920,13 @@ const CartPage = () => {
                                                         <span className="addr-tag">
                                                             {addr.type === 'Home' ? '🏠' : addr.type === 'Work' ? '🏢' : '📍'} {addr.type}
                                                         </span>
-                                                        {addresses.length > 1 && (
-                                                            <button 
-                                                                className="addr-delete-btn"
-                                                                onClick={(e) => handleDeleteAddress(addr.id, e)}
-                                                                title="Delete address"
-                                                            >
-                                                                ✕
-                                                            </button>
-                                                        )}
+                                                        <button 
+                                                            className="addr-delete-btn"
+                                                            onClick={(e) => handleDeleteAddress(addr.id, e)}
+                                                            title="Delete address"
+                                                        >
+                                                            ✕
+                                                        </button>
                                                     </div>
                                                     <div className="addr-name">{addr.fullName}</div>
                                                     <div className="addr-street">{addr.street}</div>
@@ -904,7 +960,7 @@ const CartPage = () => {
                                         </button>
                                         <button 
                                             className="primary-btn" 
-                                            disabled={!selectedAddressId}
+                                            disabled={!selectedAddressId || addresses.length === 0 || !getSelectedAddress()?.street}
                                             onClick={() => setCheckoutStep(2)}
                                         >
                                             Continue to Order Summary →
