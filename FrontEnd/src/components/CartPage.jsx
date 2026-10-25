@@ -37,7 +37,7 @@ const CartPage = () => {
     const [paymentMethod, setPaymentMethod] = useState('COD')
 
     const navigate = useNavigate()
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/+$/, '')
 
     // Sync cart items from foodData
     useEffect(() => {

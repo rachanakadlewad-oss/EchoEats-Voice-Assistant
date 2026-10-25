@@ -20,11 +20,33 @@ const LoginPage = () => {
     }
   }, [isLoggedIn, navigate, from])
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const [submitting, setSubmitting] = useState(false)
+  const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/+$/, '')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
+
+    const cleanEmail = email.trim().toLowerCase()
+    const cleanPassword = password.trim()
+    const cleanName = name.trim()
+
+    if (!cleanEmail || !cleanPassword) {
+      setError("Please fill in all required fields.")
+      return
+    }
+
+    if (!isLogin && !cleanName) {
+      setError("Please enter your full name.")
+      return
+    }
+
+    if (!isLogin && cleanPassword.length < 6) {
+      setError("Password must be at least 6 characters.")
+      return
+    }
+
+    setSubmitting(true)
 
     try {
       if (isLogin) {
@@ -33,16 +55,16 @@ const LoginPage = () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ email: cleanEmail, password: cleanPassword })
         })
         
         const data = await response.json()
         
-        if (response.ok) {
+        if (response.ok && data.success) {
           login(data.user)
           navigate(from, { replace: true })
         } else {
-          setError(data.error)
+          setError(data.error || "Login failed. Please check your credentials.")
         }
       } else {
         const response = await fetch(`${API_URL}/signup/`, {
@@ -50,20 +72,23 @@ const LoginPage = () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ name, email, password })
+          body: JSON.stringify({ name: cleanName, email: cleanEmail, password: cleanPassword })
         })
         
         const data = await response.json()
         
-        if (response.ok) {
+        if (response.ok && data.success) {
           login(data.user)
           navigate(from, { replace: true })
         } else {
-          setError(data.error)
+          setError(data.error || "Signup failed. Please try again.")
         }
       }
-    } catch (error) {
-      setError("Server error. Please try again.")
+    } catch (err) {
+      console.error("Auth request error:", err)
+      setError("Unable to connect to the backend server. Please verify your connection.")
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -103,8 +128,8 @@ const LoginPage = () => {
           required
         />
 
-        <button type="submit" className="login-button">
-          {isLogin ? "Login" : "Sign Up"}
+        <button type="submit" className="login-button" disabled={submitting}>
+          {submitting ? (isLogin ? "Signing In..." : "Creating Account...") : (isLogin ? "Login" : "Sign Up")}
         </button>
 
         <p className="login-toggle">

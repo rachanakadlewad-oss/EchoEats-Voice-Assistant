@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.db import connection
+from django.contrib.auth.hashers import make_password, check_password
 import json
 import random
 import string
@@ -302,102 +303,203 @@ def update_quantity(request, id):
 
 @csrf_exempt
 def login_user(request):
-    if request.method == "POST":
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
         try:
             data = json.loads(request.body)
-            email = data.get('email')
-            password = data.get('password')
-            
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT * FROM users WHERE email = %s AND password = %s",
-                    [email, password]
-                )
-                users = cursor.fetchall()
-                
-                if len(users) > 0:
-                    user = users[0]
-                    col_names = [col[0] for col in cursor.description]
-                    user_dict = dict(zip(col_names, user))
-                    
-                    with connection.cursor() as cursor2:
-                        cursor2.execute(
-                            "UPDATE users SET is_logged_in = TRUE WHERE user_id = %s",
-                            [user_dict['user_id']]
-                        )
-                    
-                    return JsonResponse({
-                        "success": True,
-                        "user": {
-                            "user_id": user_dict['user_id'],
-                            "name": user_dict['name'],
-                            "email": user_dict['email']
-                        }
-                    })
-                else:
+        except Exception:
+            return JsonResponse({"error": "Invalid JSON payload"}, status=400)
+
+        email = str(data.get('email') or '').strip().lower()
+        password = str(data.get('password') or '').strip()
+
+        if not email or not password:
+            return JsonResponse({"error": "Email and password are required"}, status=400)
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM users WHERE LOWER(email) = %s",
+                [email]
+            )
+            users = cursor.fetchall()
+
+            if len(users) > 0:
+                user = users[0]
+                col_names = [col[0].lower() for col in cursor.description]
+                user_dict = dict(zip(col_names, user))
+                stored_password = str(user_dict.get('password') or '')
+
+                # Verify password: checks Django PBKDF2/bcrypt/argon2 hash with plaintext fallback
+                is_valid = check_password(password, stored_password) or (password == stored_password)
+                if not is_valid:
                     return JsonResponse({"error": "Invalid email or password"}, status=401)
-                    
-        except Exception as e:
-            print("Login error:", e)
-            return JsonResponse({"error": "Server error"}, status=500)
+
+                # Upgrade legacy plaintext password to secure hash automatically
+                if password == stored_password and not stored_password.startswith(('pbkdf2_', 'argon2', 'bcrypt')):
+                    try:
+                        new_hash = make_password(password)
+                        with connection.cursor() as up_cursor:
+                            up_cursor.execute(
+                                "UPDATE users SET password = %s WHERE user_id = %s",
+                                [new_hash, user_dict['user_id']]
+                            )
+                    except Exception as up_err:
+                        print("Password hash upgrade note:", up_err)
+
+                # Update login status
+                try:
+                    with connection.cursor() as cursor2:
+                        if connection.vendor == 'postgresql':
+                            try:
+                                cursor2.execute("UPDATE users SET is_logged_in = 1 WHERE user_id = %s", [user_dict['user_id']])
+                            except Exception:
+                                connection.rollback()
+                                cursor2.execute("UPDATE users SET is_logged_in = TRUE WHERE user_id = %s", [user_dict['user_id']])
+                        else:
+                            cursor2.execute("UPDATE users SET is_logged_in = 1 WHERE user_id = %s", [user_dict['user_id']])
+                except Exception as log_err:
+                    print("Update login status note:", log_err)
+
+                return JsonResponse({
+                    "success": True,
+                    "user": {
+                        "user_id": user_dict['user_id'],
+                        "name": user_dict['name'],
+                        "email": user_dict['email']
+                    }
+                })
+            else:
+                return JsonResponse({"error": "Invalid email or password"}, status=401)
+
+    except Exception as e:
+        print("Login error:", e)
+        return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
 
 @csrf_exempt
 def signup_user(request):
-    if request.method == "POST":
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
         try:
             data = json.loads(request.body)
-            name = data.get('name')
-            email = data.get('email')
-            password = data.get('password')
-            
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT * FROM users WHERE email = %s", [email])
-                existing = cursor.fetchall()
-                
-                if len(existing) > 0:
-                    return JsonResponse({"error": "Email already exists"}, status=400)
-                
-                if connection.vendor == 'postgresql':
-                    cursor.execute(
-                        "INSERT INTO users (name, email, password, is_logged_in) VALUES (%s, %s, %s, 1) RETURNING user_id",
-                        [name, email, password]
-                    )
-                    user_id = cursor.fetchone()[0]
-                else:
-                    cursor.execute(
-                        "INSERT INTO users (name, email, password, is_logged_in) VALUES (%s, %s, %s, 1)",
-                        [name, email, password]
-                    )
-                    user_id = cursor.lastrowid
-            
-            return JsonResponse({
-                "success": True,
-                "user": {
-                    "user_id": user_id,
-                    "name": name,
-                    "email": email
-                }
-            })
-            
-        except Exception as e:
-            print("Signup error:", e)
-            return JsonResponse({"error": "Server error"}, status=500)
+        except Exception:
+            return JsonResponse({"error": "Invalid JSON payload"}, status=400)
+
+        name = str(data.get('name') or '').strip()
+        email = str(data.get('email') or '').strip().lower()
+        password = str(data.get('password') or '').strip()
+
+        if not name:
+            return JsonResponse({"error": "Full name is required"}, status=400)
+        if not email or '@' not in email:
+            return JsonResponse({"error": "A valid email address is required"}, status=400)
+        if not password or len(password) < 6:
+            return JsonResponse({"error": "Password must be at least 6 characters"}, status=400)
+
+        hashed_password = make_password(password)
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT user_id FROM users WHERE LOWER(email) = %s", [email])
+            existing = cursor.fetchall()
+
+            if len(existing) > 0:
+                return JsonResponse({"error": "Email already exists"}, status=400)
+
+            user_id = None
+            if connection.vendor == 'postgresql':
+                # Sync sequence first in case of prior manual ID insertions
+                try:
+                    cursor.execute("""
+                        SELECT setval(
+                            pg_get_serial_sequence('users', 'user_id'),
+                            COALESCE((SELECT MAX(user_id) FROM users), 0) + 1,
+                            false
+                        )
+                    """)
+                except Exception:
+                    pass
+
+                # Try inserting with integer 1, fallback to TRUE or default for is_logged_in
+                inserted = False
+                for is_logged_in_val in [1, True, None]:
+                    try:
+                        if is_logged_in_val is not None:
+                            cursor.execute(
+                                "INSERT INTO users (name, email, password, is_logged_in) VALUES (%s, %s, %s, %s) RETURNING user_id",
+                                [name, email, hashed_password, is_logged_in_val]
+                            )
+                        else:
+                            cursor.execute(
+                                "INSERT INTO users (name, email, password) VALUES (%s, %s, %s) RETURNING user_id",
+                                [name, email, hashed_password]
+                            )
+                        user_id = cursor.fetchone()[0]
+                        inserted = True
+                        break
+                    except Exception as ins_err:
+                        connection.rollback()
+                        print(f"PostgreSQL user insert attempt ({is_logged_in_val}) note: {ins_err}")
+
+                if not inserted or not user_id:
+                    raise Exception("Failed to insert user into PostgreSQL users table")
+            else:
+                cursor.execute(
+                    "INSERT INTO users (name, email, password, is_logged_in) VALUES (%s, %s, %s, 1)",
+                    [name, email, hashed_password]
+                )
+                user_id = cursor.lastrowid
+
+        return JsonResponse({
+            "success": True,
+            "user": {
+                "user_id": user_id,
+                "name": name,
+                "email": email
+            }
+        })
+
+    except Exception as e:
+        print("Signup error:", e)
+        return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
 
 @csrf_exempt
-def logout_user(request, user_id):
+def logout_user(request, user_id=None):
     if request.method == "POST":
         try:
+            target = user_id
+            if not target:
+                try:
+                    data = json.loads(request.body)
+                    target = data.get('user_id') or data.get('userId') or data.get('email')
+                except Exception:
+                    pass
+            target_str = str(target or '').strip()
             with connection.cursor() as cursor:
-                cursor.execute(
-                    "UPDATE users SET is_logged_in = FALSE WHERE user_id = %s OR email = %s",
-                    [user_id, str(user_id)]
-                )
-            
+                if connection.vendor == 'postgresql':
+                    try:
+                        cursor.execute(
+                            "UPDATE users SET is_logged_in = 0 WHERE user_id = %s OR LOWER(email) = %s",
+                            [int(target_str) if target_str.isdigit() else -1, target_str.lower()]
+                        )
+                    except Exception:
+                        connection.rollback()
+                        cursor.execute(
+                            "UPDATE users SET is_logged_in = FALSE WHERE user_id = %s OR LOWER(email) = %s",
+                            [int(target_str) if target_str.isdigit() else -1, target_str.lower()]
+                        )
+                else:
+                    cursor.execute(
+                        "UPDATE users SET is_logged_in = 0 WHERE user_id = %s OR LOWER(email) = %s",
+                        [int(target_str) if target_str.isdigit() else -1, target_str.lower()]
+                    )
+
             return JsonResponse({"success": True})
-            
+
         except Exception as e:
             print("Logout error:", e)
-            return JsonResponse({"error": "Server error"}, status=500)
+            return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
+
 
 @csrf_exempt
 def create_order(request):
@@ -613,14 +715,36 @@ def get_user_orders(request, user_id=None):
                 try:
                     if target_id_str:
                         if target_id_str.isdigit():
-                            cursor.execute("SELECT user_id, email, name FROM users WHERE user_id = %s OR LOWER(email) = %s", [int(target_id_str), target_id_str.lower()])
+                            cursor.execute(
+                                "SELECT user_id, email, name FROM users WHERE user_id = %s OR LOWER(email) = %s",
+                                [int(target_id_str), target_id_str.lower()]
+                            )
                         elif '@' in target_id_str:
-                            cursor.execute("SELECT user_id, email, name FROM users WHERE LOWER(email) = %s", [target_id_str.lower()])
+                            cursor.execute(
+                                "SELECT user_id, email, name FROM users WHERE LOWER(email) = %s",
+                                [target_id_str.lower()]
+                            )
                         else:
-                            cursor.execute("SELECT user_id, email, name FROM users WHERE CAST(user_id AS VARCHAR) = %s OR LOWER(email) = %s OR LOWER(name) = %s", [target_id_str, target_id_str.lower(), target_id_str.lower()])
+                            if connection.vendor == 'postgresql':
+                                cursor.execute(
+                                    "SELECT user_id, email, name FROM users WHERE user_id::text = %s OR LOWER(email) = %s OR LOWER(name) = %s",
+                                    [target_id_str, target_id_str.lower(), target_id_str.lower()]
+                                )
+                            else:
+                                cursor.execute(
+                                    "SELECT user_id, email, name FROM users WHERE CAST(user_id AS VARCHAR) = %s OR LOWER(email) = %s OR LOWER(name) = %s",
+                                    [target_id_str, target_id_str.lower(), target_id_str.lower()]
+                                )
                     else:
-                        cursor.execute("SELECT user_id, email, name FROM users WHERE is_logged_in = 1 OR is_logged_in = TRUE")
-                    
+                        if connection.vendor == 'postgresql':
+                            cursor.execute(
+                                "SELECT user_id, email, name FROM users WHERE is_logged_in::text = '1' OR is_logged_in::text = 'true'"
+                            )
+                        else:
+                            cursor.execute(
+                                "SELECT user_id, email, name FROM users WHERE is_logged_in = 1"
+                            )
+
                     rows = cursor.fetchall()
                     for u_row in rows:
                         if u_row[0] is not None:
@@ -628,7 +752,9 @@ def get_user_orders(request, user_id=None):
                         if u_row[1]:
                             user_identifiers.add(str(u_row[1]).lower())
                 except Exception as u_err:
-                    print("User identifier expansion error:", u_err)
+                    if connection.vendor == 'postgresql':
+                        connection.rollback()
+                    print("User identifier expansion note:", u_err)
 
                 # Fallback: if no identifier resolved yet, find latest logged in user
                 if not user_identifiers:
@@ -640,12 +766,13 @@ def get_user_orders(request, user_id=None):
                             if r[1]:
                                 user_identifiers.add(str(r[1]).lower())
                     except Exception:
-                        pass
+                        if connection.vendor == 'postgresql':
+                            connection.rollback()
 
                 cursor.execute("SELECT * FROM orders ORDER BY created_at DESC")
                 orders = cursor.fetchall()
-                col_names = [col[0] for col in cursor.description]
-                
+                col_names = [col[0].lower() for col in cursor.description]
+
                 orders_with_items = []
                 for order in orders:
                     order_dict = dict(zip(col_names, order))
@@ -688,9 +815,9 @@ def get_user_orders(request, user_id=None):
                         "items": items,
                         "customer_details": customer_details
                     })
-            
+
             return JsonResponse(orders_with_items, safe=False)
-            
+
         except Exception as e:
             print("Error fetching orders:", e)
             return JsonResponse({"error": "Server error", "details": str(e)}, status=500)

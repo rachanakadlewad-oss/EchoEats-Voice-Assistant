@@ -31,7 +31,7 @@ const VoiceAssistant = () => {
   const [transcriptTimeout, setTranscriptTimeout] = useState(null);
   const [processedCommands, setProcessedCommands] = useState([]);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
 
   const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } =
     useSpeechRecognition();

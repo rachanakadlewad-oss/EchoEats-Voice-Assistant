@@ -12,7 +12,7 @@ const OrdersPage = () => {
     const [reviewText, setReviewText] = useState('')
     const [reviewSubmitted, setReviewSubmitted] = useState(false)
     const navigate = useNavigate()
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/+$/, '')
 
     useEffect(() => {
         const storedLogin = localStorage.getItem('isLoggedIn') === 'true'
@@ -47,28 +47,30 @@ const OrdersPage = () => {
         )
 
         try {
-            const url = targetUserId 
+            const primaryUrl = targetUserId 
                 ? `${API_URL}/orders/${encodeURIComponent(targetUserId)}/`
                 : `${API_URL}/orders/`
 
-            const response = await fetch(url)
+            let response = await fetch(primaryUrl)
+            
+            // If primary URL fails (e.g. 404), try query param and route variants
+            if (!response.ok && targetUserId) {
+                response = await fetch(`${API_URL}/orders/?userId=${encodeURIComponent(targetUserId)}`)
+            }
             if (!response.ok) {
-                // Fallback attempt to general orders endpoint
-                const fbRes = await fetch(`${API_URL}/orders/`)
-                const fbData = await fbRes.json()
-                if (Array.isArray(fbData)) {
-                    setOrders(fbData)
+                response = await fetch(`${API_URL}/orders/`)
+            }
+            if (!response.ok) {
+                response = await fetch(`${API_URL}/orders`)
+            }
+
+            if (response.ok) {
+                const data = await response.json()
+                if (Array.isArray(data)) {
+                    setOrders(data)
                 } else {
                     setOrders([])
                 }
-                setLoading(false)
-                return
-            }
-
-            const data = await response.json()
-            
-            if (Array.isArray(data)) {
-                setOrders(data)
             } else {
                 setOrders([])
             }
