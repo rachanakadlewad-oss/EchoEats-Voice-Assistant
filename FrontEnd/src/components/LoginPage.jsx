@@ -21,7 +21,7 @@ const LoginPage = () => {
   }, [isLoggedIn, navigate, from])
 
   const [submitting, setSubmitting] = useState(false)
-  const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/+$/, '')
+  const API_URL = (import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://echoeats-voice-assistant-1.onrender.com' : 'http://localhost:8000')).replace(/\/+$/, '')
 
   const handleSubmit = async (e) => {
     e.preventDefault()

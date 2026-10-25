@@ -12,7 +12,7 @@ const OrdersPage = () => {
     const [reviewText, setReviewText] = useState('')
     const [reviewSubmitted, setReviewSubmitted] = useState(false)
     const navigate = useNavigate()
-    const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/+$/, '')
+    const API_URL = (import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://echoeats-voice-assistant-1.onrender.com' : 'http://localhost:8000')).replace(/\/+$/, '')
 
     useEffect(() => {
         const storedLogin = localStorage.getItem('isLoggedIn') === 'true'

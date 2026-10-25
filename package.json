@@ -1,0 +1,9 @@
+{
+  "name": "echoeats-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix FrontEnd run build",
+    "dev": "npm --prefix FrontEnd run dev",
+    "preview": "npm --prefix FrontEnd run preview"
+  }
+}

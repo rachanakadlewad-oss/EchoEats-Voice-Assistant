@@ -1,0 +1,92 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/api",
+      "destination": "https://echoeats-voice-assistant-1.onrender.com/api/"
+    },
+    {
+      "source": "/api/",
+      "destination": "https://echoeats-voice-assistant-1.onrender.com/api/"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://echoeats-voice-assistant-1.onrender.com/api/:path*"
+    },
+    {
+      "source": "/voice/:path*",
+      "destination": "https://echoeats-voice-assistant-1.onrender.com/voice/:path*"
+    },
+    {
+      "source": "/voice",
+      "destination": "https://echoeats-voice-assistant-1.onrender.com/voice"
+    },
+    {
+      "source": "/create-order/:path*",
+      "destination": "https://echoeats-voice-assistant-1.onrender.com/create-order/:path*"
+    },
+    {
+      "source": "/create-order",
+      "destination": "https://echoeats-voice-assistant-1.onrender.com/create-order"
+    },
+    {
+      "source": "/verify-payment/:path*",
+      "destination": "https://echoeats-voice-assistant-1.onrender.com/verify-payment/:path*"
+    },
+    {
+      "source": "/verify-payment",
+      "destination": "https://echoeats-voice-assistant-1.onrender.com/verify-payment"
+    },
+    {
+      "source": "/update-quantity/:path*",
+      "destination": "https://echoeats-voice-assistant-1.onrender.com/update-quantity/:path*"
+    },
+    {
+      "source": "/session-cart/:path*",
+      "destination": "https://echoeats-voice-assistant-1.onrender.com/session-cart/:path*"
+    },
+    {
+      "source": "/session-cart",
+      "destination": "https://echoeats-voice-assistant-1.onrender.com/session-cart"
+    },
+    {
+      "source": "/update-order-status/:path*",
+      "destination": "https://echoeats-voice-assistant-1.onrender.com/update-order-status/:path*"
+    },
+    {
+      "source": "/user/address/:path*",
+      "destination": "https://echoeats-voice-assistant-1.onrender.com/user/address/:path*"
+    },
+    {
+      "source": "/((?!api/|voice|create-order|verify-payment|update-quantity|session-cart|update-order-status|user/address|.*\\..*).*)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ]
+}
