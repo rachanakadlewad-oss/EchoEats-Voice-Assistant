@@ -43,17 +43,6 @@ const Footer = () => {
                         <li><Link to="/help">Help Center</Link></li>
                     </ul>
                 </div>
-                
-                <div className='FooterSection'>
-                    <h3>Follow Us</h3>
-                    <div className='SocialIcons'>
-                        <a href="https://www.facebook.com/vamshidu10/" target="_blank" rel="noopener noreferrer">FB</a>
-                        <a href="https://x.com/vamshitwts" target="_blank" rel="noopener noreferrer">TW</a>
-                        <a href="https://www.instagram.com/vamshidu/" target="_blank" rel="noopener noreferrer">IG</a>
-                        <a href="https://www.linkedin.com/in/duvamshi/
-                        " target="_blank" rel="noopener noreferrer">LI</a>
-                    </div>
-                </div>
             </div>
             
             <div className='FooterBottom'>
