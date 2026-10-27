@@ -114,24 +114,24 @@ def seed_food_items_api(request):
             else:
                 tables = ['FoodItems']
             
+            columns_info = []
+            if is_postgres:
+                cursor.execute("SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name = 'fooditems'")
+                columns_info = [list(r) for r in cursor.fetchall()]
+
             added = 0
-            for t in ['FoodItems', 'fooditems']:
+            for t in ['fooditems', '"FoodItems"']:
                 for item in ALL_FOOD_ITEMS:
                     _, name, desc, price, cat, img, avail, rating, qty, stock = item
                     c = 0
                     try:
                         cursor.execute(f"SELECT COUNT(*) FROM {t} WHERE LOWER(foodname) = LOWER(%s)", [name])
                         c = cursor.fetchone()[0]
-                    except Exception:
+                    except Exception as cnt_err:
                         if is_postgres:
                             connection.rollback()
-                        try:
-                            cursor.execute(f"SELECT COUNT(*) FROM \"{t}\" WHERE LOWER(\"FoodName\") = LOWER(%s)", [name])
-                            c = cursor.fetchone()[0]
-                        except Exception:
-                            if is_postgres:
-                                connection.rollback()
-                            c = 0
+                        log_messages.append(f"Count err {name} on {t}: {str(cnt_err)}")
+                        c = 0
 
                     if c == 0:
                         try:
@@ -143,20 +143,11 @@ def seed_food_items_api(request):
                         except Exception as ins_err:
                             if is_postgres:
                                 connection.rollback()
-                            try:
-                                cursor.execute(f"""
-                                    INSERT INTO \"{t}\" (\"FoodName\", \"Description\", \"Price\", \"Category\", \"ImageName\", \"IsAvailable\", \"Rating\", \"Quantity\", \"Stock\")
-                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                """, (name, desc, price, cat, img, avail, rating, qty, stock))
-                                added += 1
-                            except Exception as ins_err2:
-                                if is_postgres:
-                                    connection.rollback()
-                                log_messages.append(f"Failed {name} on {t}: {str(ins_err2)}")
+                            log_messages.append(f"First attempt err {name} on {t}: {str(ins_err)}")
 
             if is_postgres:
-                for t_name in ['"FoodItems"', 'fooditems', '"fooditems"']:
-                    for col_name in ['FoodID', 'foodid', '"FoodID"', '"foodid"']:
+                for t_name in ['fooditems', '"FoodItems"']:
+                    for col_name in ['foodid', 'FoodID']:
                         try:
                             cursor.execute(f"""
                                 SELECT setval(
@@ -170,7 +161,7 @@ def seed_food_items_api(request):
 
             cursor.execute("SELECT COUNT(*) FROM FoodItems")
             total = cursor.fetchone()[0]
-        return JsonResponse({"version": "v2", "status": "success", "added": added, "total": total, "tables": tables, "errors": log_messages})
+        return JsonResponse({"version": "v3", "status": "success", "added": added, "total": total, "columns": columns_info, "errors": log_messages[:10]})
     except Exception as e:
         return JsonResponse({"version": "v2", "status": "error", "error": str(e)}, status=500)
 
