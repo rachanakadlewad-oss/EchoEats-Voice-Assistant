@@ -101,22 +101,78 @@ def get_food_items(request):
 @csrf_exempt
 def seed_food_items_api(request):
     try:
-        from setup_db import seed_all_food_items
+        from setup_db import ALL_FOOD_ITEMS
+        log_messages = []
         with connection.cursor() as cursor:
             vendor = connection.vendor
             is_postgres = (vendor == 'postgresql')
-            added = seed_all_food_items(cursor, is_postgres)
-            try:
-                cursor.execute('SELECT COUNT(*) FROM fooditems')
-                total = cursor.fetchone()[0]
-            except Exception:
-                if is_postgres:
-                    connection.rollback()
-                cursor.execute('SELECT COUNT(*) FROM "FoodItems"')
-                total = cursor.fetchone()[0]
-        return JsonResponse({"status": "success", "added": added, "total": total})
+            
+            tables = []
+            if is_postgres:
+                cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+                tables = [r[0] for r in cursor.fetchall()]
+            else:
+                tables = ['FoodItems']
+            
+            added = 0
+            for t in ['FoodItems', 'fooditems']:
+                for item in ALL_FOOD_ITEMS:
+                    _, name, desc, price, cat, img, avail, rating, qty, stock = item
+                    c = 0
+                    try:
+                        cursor.execute(f"SELECT COUNT(*) FROM {t} WHERE LOWER(foodname) = LOWER(%s)", [name])
+                        c = cursor.fetchone()[0]
+                    except Exception:
+                        if is_postgres:
+                            connection.rollback()
+                        try:
+                            cursor.execute(f"SELECT COUNT(*) FROM \"{t}\" WHERE LOWER(\"FoodName\") = LOWER(%s)", [name])
+                            c = cursor.fetchone()[0]
+                        except Exception:
+                            if is_postgres:
+                                connection.rollback()
+                            c = 0
+
+                    if c == 0:
+                        try:
+                            cursor.execute(f"""
+                                INSERT INTO {t} (foodname, description, price, category, imagename, isavailable, rating, quantity, stock)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            """, (name, desc, price, cat, img, avail, rating, qty, stock))
+                            added += 1
+                        except Exception as ins_err:
+                            if is_postgres:
+                                connection.rollback()
+                            try:
+                                cursor.execute(f"""
+                                    INSERT INTO \"{t}\" (\"FoodName\", \"Description\", \"Price\", \"Category\", \"ImageName\", \"IsAvailable\", \"Rating\", \"Quantity\", \"Stock\")
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                """, (name, desc, price, cat, img, avail, rating, qty, stock))
+                                added += 1
+                            except Exception as ins_err2:
+                                if is_postgres:
+                                    connection.rollback()
+                                log_messages.append(f"Failed {name} on {t}: {str(ins_err2)}")
+
+            if is_postgres:
+                for t_name in ['"FoodItems"', 'fooditems', '"fooditems"']:
+                    for col_name in ['FoodID', 'foodid', '"FoodID"', '"foodid"']:
+                        try:
+                            cursor.execute(f"""
+                                SELECT setval(
+                                    pg_get_serial_sequence('{t_name}', '{col_name}'),
+                                    COALESCE((SELECT MAX({col_name}) FROM {t_name}), 0) + 1,
+                                    false
+                                )
+                            """)
+                        except Exception:
+                            connection.rollback()
+
+            cursor.execute("SELECT COUNT(*) FROM FoodItems")
+            total = cursor.fetchone()[0]
+        return JsonResponse({"version": "v2", "status": "success", "added": added, "total": total, "tables": tables, "errors": log_messages})
     except Exception as e:
-        return JsonResponse({"status": "error", "error": str(e)}, status=500)
+        return JsonResponse({"version": "v2", "status": "error", "error": str(e)}, status=500)
 
 @csrf_exempt
 def process_voice(request):
