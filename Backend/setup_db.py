@@ -72,51 +72,53 @@ def seed_all_food_items(cursor=None, is_postgres=None):
         is_postgres = (connection.vendor == 'postgresql')
 
     added_count = 0
-    table_name = '"FoodItems"'
-    try:
-        cursor.execute('SELECT 1 FROM "FoodItems" LIMIT 1')
-    except Exception:
-        if is_postgres:
-            connection.rollback()
-        table_name = 'fooditems'
+    tables_to_seed = ['"FoodItems"', 'fooditems'] if is_postgres else ['FoodItems']
 
-    for item in ALL_FOOD_ITEMS:
-        item_id, name, desc, price, cat, img, avail, rating, qty, stock = item
-        exists = False
+    for table_name in tables_to_seed:
         try:
-            cursor.execute(f"SELECT COUNT(*) FROM {table_name} WHERE LOWER(FoodName) = LOWER(%s)", [name])
-            exists = (cursor.fetchone()[0] > 0)
+            cursor.execute(f'SELECT 1 FROM {table_name} LIMIT 1')
         except Exception:
             if is_postgres:
                 connection.rollback()
+            continue
+
+        for item in ALL_FOOD_ITEMS:
+            item_id, name, desc, price, cat, img, avail, rating, qty, stock = item
+            exists = False
             try:
-                cursor.execute(f"SELECT COUNT(*) FROM {table_name} WHERE LOWER(foodname) = LOWER(%s)", [name])
+                cursor.execute(f"SELECT COUNT(*) FROM {table_name} WHERE LOWER(FoodName) = LOWER(%s)", [name])
                 exists = (cursor.fetchone()[0] > 0)
             except Exception:
                 if is_postgres:
                     connection.rollback()
-                exists = False
+                try:
+                    cursor.execute(f"SELECT COUNT(*) FROM {table_name} WHERE LOWER(foodname) = LOWER(%s)", [name])
+                    exists = (cursor.fetchone()[0] > 0)
+                except Exception:
+                    if is_postgres:
+                        connection.rollback()
+                    exists = False
 
-        if not exists:
-            try:
-                cursor.execute(f"""
-                    INSERT INTO {table_name} (FoodName, Description, Price, Category, ImageName, IsAvailable, Rating, Quantity, Stock)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (name, desc, price, cat, img, avail, rating, qty, stock))
-                added_count += 1
-            except Exception:
-                if is_postgres:
-                    connection.rollback()
+            if not exists:
                 try:
                     cursor.execute(f"""
-                        INSERT INTO {table_name} (foodname, description, price, category, imagename, isavailable, rating, quantity, stock)
+                        INSERT INTO {table_name} (FoodName, Description, Price, Category, ImageName, IsAvailable, Rating, Quantity, Stock)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """, (name, desc, price, cat, img, avail, rating, qty, stock))
                     added_count += 1
-                except Exception as ins_err2:
+                except Exception:
                     if is_postgres:
                         connection.rollback()
-                    print(f"[EchoEats] Note inserting {name}: {ins_err2}")
+                    try:
+                        cursor.execute(f"""
+                            INSERT INTO {table_name} (foodname, description, price, category, imagename, isavailable, rating, quantity, stock)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """, (name, desc, price, cat, img, avail, rating, qty, stock))
+                        added_count += 1
+                    except Exception as ins_err2:
+                        if is_postgres:
+                            connection.rollback()
+                        print(f"[EchoEats] Note inserting {name} into {table_name}: {ins_err2}")
 
     if is_postgres:
         for t_name in ['"FoodItems"', 'fooditems']:

@@ -49,13 +49,13 @@ def get_food_items(request):
                 vendor = connection.vendor
                 is_postgres = (vendor == 'postgresql')
                 try:
-                    cursor.execute('SELECT COUNT(*) FROM "FoodItems"')
+                    cursor.execute('SELECT COUNT(*) FROM fooditems')
                     count = cursor.fetchone()[0]
                 except Exception:
                     if is_postgres:
                         connection.rollback()
                     try:
-                        cursor.execute('SELECT COUNT(*) FROM fooditems')
+                        cursor.execute('SELECT COUNT(*) FROM "FoodItems"')
                         count = cursor.fetchone()[0]
                     except Exception:
                         if is_postgres:
@@ -107,12 +107,12 @@ def seed_food_items_api(request):
             is_postgres = (vendor == 'postgresql')
             added = seed_all_food_items(cursor, is_postgres)
             try:
-                cursor.execute('SELECT COUNT(*) FROM "FoodItems"')
+                cursor.execute('SELECT COUNT(*) FROM fooditems')
                 total = cursor.fetchone()[0]
             except Exception:
                 if is_postgres:
                     connection.rollback()
-                cursor.execute('SELECT COUNT(*) FROM fooditems')
+                cursor.execute('SELECT COUNT(*) FROM "FoodItems"')
                 total = cursor.fetchone()[0]
         return JsonResponse({"status": "success", "added": added, "total": total})
     except Exception as e:
