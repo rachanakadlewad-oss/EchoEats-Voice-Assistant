@@ -66,6 +66,20 @@ def get_food_items(request):
                     seed_all_food_items(cursor, is_postgres)
 
             with connection.cursor() as cursor:
+                near_dupes = ['Crispy Masala Dosa', 'Special Indian Thali', 'Authentic Vangi Bath', 'Cheese Burger', 'Sweet Obbattu']
+                for t in (['fooditems', '"FoodItems"'] if is_postgres else ['FoodItems']):
+                    for nd in near_dupes:
+                        try:
+                            cursor.execute(f"DELETE FROM {t} WHERE LOWER(foodname) = LOWER(%s)", [nd])
+                        except Exception:
+                            if is_postgres:
+                                connection.rollback()
+                            try:
+                                cursor.execute(f"DELETE FROM {t} WHERE LOWER(\"FoodName\") = LOWER(%s)", [nd])
+                            except Exception:
+                                if is_postgres:
+                                    connection.rollback()
+
                 cursor.execute("""
                     SELECT FoodID, FoodName, Description, Price, Category,
                            ImageName, IsAvailable, Rating,
@@ -146,25 +160,26 @@ def seed_food_items_api(request):
                                 connection.rollback()
                             log_messages.append(f"Insert err {name} on {t}: {str(ins_err)}")
 
-            if is_postgres:
-                for t_name in ['fooditems', '"FoodItems"']:
-                    for col_name in ['foodid', 'FoodID']:
-                        try:
-                            cursor.execute(f"""
-                                SELECT setval(
-                                    pg_get_serial_sequence('{t_name}', '{col_name}'),
-                                    COALESCE((SELECT MAX({col_name}) FROM {t_name}), 0) + 1,
-                                    false
-                                )
-                            """)
-                        except Exception:
+            # Clean up near-duplicate aliases if present
+            near_dupes = ['Crispy Masala Dosa', 'Special Indian Thali', 'Authentic Vangi Bath', 'Cheese Burger', 'Sweet Obbattu']
+            for t in (['fooditems', '"FoodItems"'] if is_postgres else ['FoodItems']):
+                for nd in near_dupes:
+                    try:
+                        cursor.execute(f"DELETE FROM {t} WHERE LOWER(foodname) = LOWER(%s)", [nd])
+                    except Exception:
+                        if is_postgres:
                             connection.rollback()
+                        try:
+                            cursor.execute(f"DELETE FROM {t} WHERE LOWER(\"FoodName\") = LOWER(%s)", [nd])
+                        except Exception:
+                            if is_postgres:
+                                connection.rollback()
 
             cursor.execute("SELECT COUNT(*) FROM FoodItems")
             total = cursor.fetchone()[0]
-        return JsonResponse({"version": "v4", "status": "success", "added": added, "total": total, "columns": columns_info, "errors": log_messages[:10]})
+        return JsonResponse({"version": "v5", "status": "success", "added": added, "total": total, "columns": columns_info, "errors": log_messages[:10]})
     except Exception as e:
-        return JsonResponse({"version": "v4", "status": "error", "error": str(e)}, status=500)
+        return JsonResponse({"version": "v5", "status": "error", "error": str(e)}, status=500)
 
 @csrf_exempt
 def process_voice(request):

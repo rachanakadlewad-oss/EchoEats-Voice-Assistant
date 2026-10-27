@@ -13,18 +13,18 @@ from django.db import connection
 from django.contrib.auth.hashers import make_password
 
 ALL_FOOD_ITEMS = [
-    # Baseline 11 items
+    # Baseline 11 items (matching exact original database names)
     (1, "Margherita Pizza", "Classic delight with 100% real mozzarella cheese, basil leaves, and herb-infused tomato sauce on a hand-tossed crust.", 199.00, "Pizza", "01_Margherita.jpeg", 1, 4.8, 0, 50),
     (2, "Farmhouse Pizza", "Crispy hand-stretched crust overloaded with crunchy bell peppers, juicy golden corn, mushrooms, and diced onions.", 249.00, "Pizza", "02_Farmhouse.jpeg", 1, 4.7, 0, 45),
     (3, "Pepperoni Pizza", "Loaded with savory spiced pepperoni slices, smothered with premium melted cheese and rich oregano sprinkles.", 299.00, "Pizza", "03_Pepperoni.jpeg", 1, 4.9, 0, 35),
     (4, "Veggie Burger", "Crisp golden vegetable patty layered with fresh iceberg lettuce, sliced tomatoes, gherkins, and house special sauce.", 129.00, "Burger", "04_VeggieBurger.jpeg", 1, 4.6, 0, 60),
     (5, "Chicken Burger", "Tender, seasoned chicken patty flame-grilled to perfection, topped with crisp slaw, cheese, and creamy garlic dressing.", 169.00, "Burger", "05_ChickenBurger.jpeg", 1, 4.8, 0, 40),
-    (6, "Cheese Burger", "Double melted cheddar slices over a seasoned savory patty with caramelised onions, pickles, and smoky barbecue aioli.", 149.00, "Burger", "06_CheeseBurger.jpeg", 1, 4.7, 0, 50),
+    (6, "Cheese Burst Burger", "Double melted cheddar slices over a seasoned savory patty with caramelised onions, pickles, and smoky barbecue aioli.", 149.00, "Burger", "06_CheeseBurger.jpeg", 1, 4.7, 0, 50),
     (7, "Chicken Biryani", "Slow-cooked fragrant dum basmati rice layered with succulent marinated chicken, saffron, mint, and whole aromatic spices.", 249.00, "Main Course", "07_ChickenBiryani.jpeg", 1, 4.9, 0, 30),
-    (8, "Special Indian Thali", "A royal platter with 2 butter rotis, dal makhani, paneer butter masala, jeera rice, salad, raita, and hot gulab jamun.", 199.00, "Main Course", "08_Thali.jpeg", 1, 4.8, 0, 25),
-    (9, "Crispy Masala Dosa", "Paper-thin golden South Indian fermented rice crepe filled with fragrant spiced potato masala, served with chutneys.", 99.00, "Snacks", "09_MasalaDosa.jpeg", 1, 4.9, 0, 70),
-    (10, "Sweet Obbattu", "Traditional festive sweet flatbread with a melt-in-mouth filling of chana dal, jaggery, cardamom, and pure desi ghee.", 79.00, "Dessert", "10_Obbattu.jpeg", 1, 4.7, 0, 40),
-    (11, "Authentic Vangi Bath", "Classic Karnataka spiced brinjal rice prepared with freshly roasted spice blend, curry leaves, and crunchy roasted peanuts.", 119.00, "Main Course", "11_VangiBath.jpeg", 1, 4.6, 0, 50),
+    (8, "South Indian Thali", "A royal platter with 2 butter rotis, dal makhani, paneer butter masala, jeera rice, salad, raita, and hot gulab jamun.", 199.00, "Main Course", "08_Thali.jpeg", 1, 4.8, 0, 25),
+    (9, "Masala Dosa", "Paper-thin golden South Indian fermented rice crepe filled with fragrant spiced potato masala, served with chutneys.", 99.00, "Snacks", "09_MasalaDosa.jpeg", 1, 4.9, 0, 70),
+    (10, "Obbattu", "Traditional festive sweet flatbread with a melt-in-mouth filling of chana dal, jaggery, cardamom, and pure desi ghee.", 79.00, "Dessert", "10_Obbattu.jpeg", 1, 4.7, 0, 40),
+    (11, "Vangibath", "Classic Karnataka spiced brinjal rice prepared with freshly roasted spice blend, curry leaves, and crunchy roasted peanuts.", 119.00, "Main Course", "11_VangiBath.jpeg", 1, 4.6, 0, 50),
 
     # 5 New Items for Snacks
     (12, "Paneer Tikka Bites", "Tender cottage cheese cubes marinated in spiced hung curd, bell peppers, and grilled to smoky perfection.", 149.00, "Snacks", "12_PaneerTikka.jpeg", 1, 4.8, 0, 50),
