@@ -44,12 +44,34 @@ except Exception:
 def get_food_items(request):
     if request.method == "GET":
         try:
+            from setup_db import seed_all_food_items
+            with connection.cursor() as cursor:
+                vendor = connection.vendor
+                is_postgres = (vendor == 'postgresql')
+                try:
+                    cursor.execute('SELECT COUNT(*) FROM "FoodItems"')
+                    count = cursor.fetchone()[0]
+                except Exception:
+                    if is_postgres:
+                        connection.rollback()
+                    try:
+                        cursor.execute('SELECT COUNT(*) FROM fooditems')
+                        count = cursor.fetchone()[0]
+                    except Exception:
+                        if is_postgres:
+                            connection.rollback()
+                        count = 0
+
+                if count < 36:
+                    seed_all_food_items(cursor, is_postgres)
+
             with connection.cursor() as cursor:
                 cursor.execute("""
                     SELECT FoodID, FoodName, Description, Price, Category,
                            ImageName, IsAvailable, Rating,
                            DateAdded, Quantity, Stock
                     FROM FoodItems
+                    ORDER BY FoodID
                 """)
 
                 rows = cursor.fetchall()
@@ -75,6 +97,26 @@ def get_food_items(request):
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+def seed_food_items_api(request):
+    try:
+        from setup_db import seed_all_food_items
+        with connection.cursor() as cursor:
+            vendor = connection.vendor
+            is_postgres = (vendor == 'postgresql')
+            added = seed_all_food_items(cursor, is_postgres)
+            try:
+                cursor.execute('SELECT COUNT(*) FROM "FoodItems"')
+                total = cursor.fetchone()[0]
+            except Exception:
+                if is_postgres:
+                    connection.rollback()
+                cursor.execute('SELECT COUNT(*) FROM fooditems')
+                total = cursor.fetchone()[0]
+        return JsonResponse({"status": "success", "added": added, "total": total})
+    except Exception as e:
+        return JsonResponse({"status": "error", "error": str(e)}, status=500)
 
 @csrf_exempt
 def process_voice(request):
