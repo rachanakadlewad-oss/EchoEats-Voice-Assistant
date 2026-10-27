@@ -134,16 +134,17 @@ def seed_food_items_api(request):
                         c = 0
 
                     if c == 0:
+                        avail_bool = True if avail else False
                         try:
                             cursor.execute(f"""
                                 INSERT INTO {t} (foodname, description, price, category, imagename, isavailable, rating, quantity, stock)
                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                            """, (name, desc, price, cat, img, avail, rating, qty, stock))
+                            """, (name, desc, price, cat, img, avail_bool, rating, qty, stock))
                             added += 1
                         except Exception as ins_err:
                             if is_postgres:
                                 connection.rollback()
-                            log_messages.append(f"First attempt err {name} on {t}: {str(ins_err)}")
+                            log_messages.append(f"Insert err {name} on {t}: {str(ins_err)}")
 
             if is_postgres:
                 for t_name in ['fooditems', '"FoodItems"']:
@@ -161,9 +162,9 @@ def seed_food_items_api(request):
 
             cursor.execute("SELECT COUNT(*) FROM FoodItems")
             total = cursor.fetchone()[0]
-        return JsonResponse({"version": "v3", "status": "success", "added": added, "total": total, "columns": columns_info, "errors": log_messages[:10]})
+        return JsonResponse({"version": "v4", "status": "success", "added": added, "total": total, "columns": columns_info, "errors": log_messages[:10]})
     except Exception as e:
-        return JsonResponse({"version": "v2", "status": "error", "error": str(e)}, status=500)
+        return JsonResponse({"version": "v4", "status": "error", "error": str(e)}, status=500)
 
 @csrf_exempt
 def process_voice(request):

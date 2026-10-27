@@ -100,20 +100,21 @@ def seed_all_food_items(cursor=None, is_postgres=None):
                     exists = False
 
             if not exists:
+                avail_bool = True if avail else False
                 try:
                     cursor.execute(f"""
-                        INSERT INTO {table_name} (FoodName, Description, Price, Category, ImageName, IsAvailable, Rating, Quantity, Stock)
+                        INSERT INTO {table_name} (foodname, description, price, category, imagename, isavailable, rating, quantity, stock)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (name, desc, price, cat, img, avail, rating, qty, stock))
+                    """, (name, desc, price, cat, img, avail_bool, rating, qty, stock))
                     added_count += 1
                 except Exception:
                     if is_postgres:
                         connection.rollback()
                     try:
                         cursor.execute(f"""
-                            INSERT INTO {table_name} (foodname, description, price, category, imagename, isavailable, rating, quantity, stock)
+                            INSERT INTO {table_name} (FoodName, Description, Price, Category, ImageName, IsAvailable, Rating, Quantity, Stock)
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        """, (name, desc, price, cat, img, avail, rating, qty, stock))
+                        """, (name, desc, price, cat, img, avail_bool, rating, qty, stock))
                         added_count += 1
                     except Exception as ins_err2:
                         if is_postgres:
