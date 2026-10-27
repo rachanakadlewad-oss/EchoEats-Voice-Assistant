@@ -14,7 +14,7 @@ from django.contrib.auth.hashers import make_password
 
 ALL_FOOD_ITEMS = [
     # Baseline 11 items (matching exact original database names)
-    (1, "Margherita Pizza", "Classic delight with 100% real mozzarella cheese, basil leaves, and herb-infused tomato sauce on a hand-tossed crust.", 199.00, "Pizza", "01_Margherita.jpeg", 1, 4.8, 0, 50),
+    (1, "Margherita Pizza", "Classic delight with 100% real mozzarella cheese, basil leaves, and herb-infused tomato sauce on a hand-tossed crust.", 100.00, "Pizza", "01_Margherita.jpeg", 1, 4.8, 0, 50),
     (2, "Farmhouse Pizza", "Crispy hand-stretched crust overloaded with crunchy bell peppers, juicy golden corn, mushrooms, and diced onions.", 249.00, "Pizza", "02_Farmhouse.jpeg", 1, 4.7, 0, 45),
     (3, "Pepperoni Pizza", "Loaded with savory spiced pepperoni slices, smothered with premium melted cheese and rich oregano sprinkles.", 299.00, "Pizza", "03_Pepperoni.jpeg", 1, 4.9, 0, 35),
     (4, "Veggie Burger", "Crisp golden vegetable patty layered with fresh iceberg lettuce, sliced tomatoes, gherkins, and house special sauce.", 129.00, "Burger", "04_VeggieBurger.jpeg", 1, 4.6, 0, 60),
@@ -120,6 +120,17 @@ def seed_all_food_items(cursor=None, is_postgres=None):
                         if is_postgres:
                             connection.rollback()
                         print(f"[EchoEats] Note inserting {name} into {table_name}: {ins_err2}")
+        # Ensure Margherita Pizza price is set to 100.00
+        try:
+            cursor.execute(f"UPDATE {table_name} SET price = 100.00 WHERE LOWER(foodname) = 'margherita pizza'")
+        except Exception:
+            if is_postgres:
+                connection.rollback()
+            try:
+                cursor.execute(f"UPDATE {table_name} SET Price = 100.00 WHERE LOWER(FoodName) = 'margherita pizza'")
+            except Exception:
+                if is_postgres:
+                    connection.rollback()
 
     if is_postgres:
         for t_name in ['"FoodItems"', 'fooditems']:

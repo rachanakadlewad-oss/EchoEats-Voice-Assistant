@@ -79,6 +79,18 @@ def get_food_items(request):
                             except Exception:
                                 if is_postgres:
                                     connection.rollback()
+                # Ensure Margherita Pizza price is set to 100.00
+                for t in (['fooditems', '"FoodItems"'] if is_postgres else ['FoodItems']):
+                    try:
+                        cursor.execute(f"UPDATE {t} SET price = 100.00 WHERE LOWER(foodname) = 'margherita pizza'")
+                    except Exception:
+                        if is_postgres:
+                            connection.rollback()
+                        try:
+                            cursor.execute(f"UPDATE {t} SET \"Price\" = 100.00 WHERE LOWER(\"FoodName\") = 'margherita pizza'")
+                        except Exception:
+                            if is_postgres:
+                                connection.rollback()
 
                 cursor.execute("""
                     SELECT FoodID, FoodName, Description, Price, Category,
@@ -174,6 +186,19 @@ def seed_food_items_api(request):
                         except Exception:
                             if is_postgres:
                                 connection.rollback()
+
+            # Ensure Margherita Pizza price is set to 100.00
+            for t in (['fooditems', '"FoodItems"'] if is_postgres else ['FoodItems']):
+                try:
+                    cursor.execute(f"UPDATE {t} SET price = 100.00 WHERE LOWER(foodname) = 'margherita pizza'")
+                except Exception:
+                    if is_postgres:
+                        connection.rollback()
+                    try:
+                        cursor.execute(f"UPDATE {t} SET \"Price\" = 100.00 WHERE LOWER(\"FoodName\") = 'margherita pizza'")
+                    except Exception:
+                        if is_postgres:
+                            connection.rollback()
 
             cursor.execute("SELECT COUNT(*) FROM FoodItems")
             total = cursor.fetchone()[0]
